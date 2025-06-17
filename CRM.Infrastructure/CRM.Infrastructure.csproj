@@ -10,4 +10,9 @@
     <ProjectReference Include="..\CRM.Core\CRM.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="DbContext\" />
+    <Folder Include="EntityConfigurations\" />
+  </ItemGroup>
+
 </Project>

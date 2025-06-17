@@ -17,7 +17,7 @@ public class ProdutoService : IProdutoService
 
     public async Task Adicionar(ProdutoDto produtoDto)
     {
-        var produto = new Produto { Nome = produtoDto.Nome, Preco = produtoDto.Preco };
+        var produto = new Produto { Nome = produtoDto.Nome, Preco = produtoDto?.Preco };
         await _produtoRepository.Adicionar(produto);
     }
 

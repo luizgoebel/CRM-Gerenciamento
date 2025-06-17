@@ -37,7 +37,7 @@ public class Startup
                        Pomelo.EntityFrameworkCore.MySql.Infrastructure.ServerType.MySql),
                    m =>
                    {
-                       m.MigrationsAssembly("Diario.Infrastructure.Migrations");
+                       m.MigrationsAssembly("CRM.Infrastructure");
                        m.CommandTimeout(50000);
                    }
                )

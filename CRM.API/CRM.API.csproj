@@ -14,4 +14,8 @@
     <ProjectReference Include="..\CRM.Application\CRM.Application.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Controllers\" />
+  </ItemGroup>
+
 </Project>

@@ -1,5 +1,8 @@
 ﻿using CRM.Core.Interfaces;
 using CRM.Domain.Entidades;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace CRM.Infrastructure.Repositories;
 

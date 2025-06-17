@@ -5,12 +5,7 @@ namespace CRM.Infrastructure.Repositories;
 
 public class PedidoRepository : IPedidoRepository
 {
-    public Task Adicionar(Pedido pedido)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<IEnumerable<Pedido>> ObterPorClienteId(int clienteId)
+    public Task<int> CriarPedido(Pedido pedido)
     {
         throw new NotImplementedException();
     }

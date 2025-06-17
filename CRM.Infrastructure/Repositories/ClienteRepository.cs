@@ -5,17 +5,12 @@ namespace CRM.Infrastructure.Repositories;
 
 public class ClienteRepository : IClienteRepository
 {
-    public Task Adicionar(Cliente cliente)
+    public Task<int> Adicionar(Cliente cliente)
     {
         throw new NotImplementedException();
     }
 
-    public Task<bool> ExisteTelefone(string telefone)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<IEnumerable<Cliente>> ListarTodos()
+    public Task Atualizar(Cliente cliente)
     {
         throw new NotImplementedException();
     }

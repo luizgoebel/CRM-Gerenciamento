@@ -2,6 +2,7 @@
 using CRM.Infrastructure.DbContext;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 using System.Globalization;
 
 namespace CRM.API;
@@ -19,73 +20,74 @@ public class Startup
     public void ConfigureServices(IServiceCollection services, IWebHostEnvironment env)
     {
         services.AddMemoryCache();
+
         services.AddControllers()
             .AddJsonOptions(options => options.JsonSerializerOptions.PropertyNamingPolicy = null)
             .AddNewtonsoftJson();
 
         RegistrarContextos(services, env);
+
+        services.AddLogging(loggingBuilder =>
+        {
+            loggingBuilder.AddConfiguration(Configuration.GetSection("Logging"));
+            loggingBuilder.AddConsole();
+            loggingBuilder.AddDebug();
+        });
+
+        AdicionarSwagger(services);
     }
 
     private void RegistrarContextos(IServiceCollection services, IWebHostEnvironment env)
     {
         services
-           .AddDbContext<CrmDbContext>(options =>
-           {
-               options.UseMySql(dadosConexao,
-                   ServerVersion.Create(
-                       new Version("8.0.28"),
-                       Pomelo.EntityFrameworkCore.MySql.Infrastructure.ServerType.MySql),
-                   m =>
-                   {
-                       m.MigrationsAssembly("CRM.Infrastructure");
-                       m.CommandTimeout(50000);
-                   }
-               )
-               .LogTo(s => System.Diagnostics.Debug.WriteLine(s))
-               .EnableDetailedErrors(true)
-               .EnableSensitiveDataLogging(true);
-               options.UseLazyLoadingProxies();
-           });
+            .AddDbContext<CrmDbContext>(options =>
+            {
+                options.UseMySql(dadosConexao,
+                    ServerVersion.Create(new Version("8.0.28"), Pomelo.EntityFrameworkCore.MySql.Infrastructure.ServerType.MySql),
+                    m =>
+                    {
+                        m.MigrationsAssembly("CRM.Infrastructure");
+                        m.CommandTimeout(50000);
+                    }
+                )
+                .LogTo(s => System.Diagnostics.Debug.WriteLine(s))
+                .EnableDetailedErrors(true)
+                .EnableSensitiveDataLogging(true);
+                options.UseLazyLoadingProxies();
+            });
     }
-    public void Configure(
-        IApplicationBuilder app,
-        IWebHostEnvironment env)
+
+    private void AdicionarSwagger(IServiceCollection services)
     {
-        CultureInfo[] supportedCultures = new[] { new CultureInfo("pt-BR") };
+        services.AddSwaggerGen(s =>
+        {
+            s.SwaggerDoc("v1", new OpenApiInfo
+            {
+                Version = "1.0",
+                Title = "API do CRM"
+            });
+            s.CustomSchemaIds(x => x.FullName);
+        });
+    }
+
+    public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+    {
+        var supportedCultures = new[] { new CultureInfo("pt-BR") };
         app.UseRequestLocalization(new RequestLocalizationOptions
         {
-            DefaultRequestCulture = new RequestCulture(culture: "pt-BR", uiCulture: "pt-BR"),
+            DefaultRequestCulture = new RequestCulture("pt-BR"),
             SupportedCultures = supportedCultures,
             SupportedUICultures = supportedCultures
         });
 
-        if (env.IsDevelopment())
+        app.UseSwagger();
+        app.UseSwaggerUI(c =>
         {
-            app.UseDeveloperExceptionPage();
-
-            //app.UseSwagger();
-            //app.UseSwaggerUI(c =>
-            //{
-            //    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Versão única");
-            //    c.RoutePrefix = string.Empty;
-            //    c.OAuthClientId("Diario-Api-Swagger");
-            //    c.OAuthClientSecret("diarioapiswagger-tec1429@");
-            //    c.OAuthAppName("Diario-Api-Swagger");
-            //    c.OAuthUseBasicAuthenticationWithAccessCodeGrant();
-            //});
-        }
-
-        //JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
-
-        app.Use((context, next) =>
-        {
-            context.Request.Scheme = "https";
-            return next();
+            c.SwaggerEndpoint("/swagger/v1/swagger.json", "API do CRM v1");
+            c.RoutePrefix = "swagger"; // Agora: https://localhost:7058/swagger
         });
 
         app.UseRouting();
-        //app.UseAuthentication();
-        //app.UseAuthorization();
         app.UseMiddleware<ExceptionMiddleware>();
 
         app.UseEndpoints(endpoints =>

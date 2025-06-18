@@ -56,7 +56,7 @@ public class ProdutoService : IProdutoService
         {
             var produto = await _produtoRepository.ObterPorId(id)
             ?? throw new ServiceException($"Produto com ID {id} não encontrado.");
-            return new ProdutoDto { Nome = produto.Nome, Preco = produto.Preco };
+            return new ProdutoDto { Id = produto.Id, Nome = produto.Nome, Preco = produto.Preco };
         }
         catch (ServiceException)
         {

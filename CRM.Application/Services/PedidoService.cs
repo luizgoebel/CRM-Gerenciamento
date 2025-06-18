@@ -59,6 +59,7 @@ public class PedidoService : IPedidoService
             return new PedidoDto
             {
                 ClienteId = pedido.ClienteId,
+                Id = pedido.Id,
                 Itens = pedido.Itens.Select(i => new PedidoItemDto
                 {
                     ProdutoId = i.ProdutoId,

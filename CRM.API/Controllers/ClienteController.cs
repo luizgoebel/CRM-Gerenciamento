@@ -19,14 +19,12 @@ namespace CRM.API.Controllers
         public async Task<IActionResult> ObterPorId(int id)
         {
             var cliente = await _clienteService.ObterPorId(id);
-            if (cliente == null) return NotFound();
             return Ok(cliente);
         }
 
         [HttpPost]
         public async Task<IActionResult> Adicionar([FromBody] ClienteDto clienteDto)
         {
-            if (clienteDto == null) return BadRequest("Cliente não pode ser nulo.");
             var novoId = await _clienteService.Adicionar(clienteDto);
             return CreatedAtAction(nameof(ObterPorId), new { id = novoId }, clienteDto);
         }
@@ -34,7 +32,6 @@ namespace CRM.API.Controllers
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Atualizar(int id, [FromBody] ClienteDto clienteDto)
         {
-            if (clienteDto == null) return BadRequest("Cliente não pode ser nulo.");
             await _clienteService.Atualizar(id, clienteDto);
             return NoContent();
         }

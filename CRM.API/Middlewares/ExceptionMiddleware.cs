@@ -1,20 +1,23 @@
 ﻿using CRM.Application.Exceptions;
 using CRM.Domain.Entidades;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace CRM.API.Middlewares;
 
 public class ExceptionMiddleware
 {
     private readonly RequestDelegate _next;
-    private const int DomainExceptionStatusCode = 400;
     private const int ExceptionStatusCode = 500;
     private const int ServiceExceptionStatusCode = 503;
-    private const int UnauthorizedAccessStatusCode = 403;
-    private const int DiarioBloqueadoStatusCode = 410;
-    public ExceptionMiddleware(RequestDelegate next)
+    private readonly ILogger<ExceptionMiddleware> _logger;
+
+    public ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger)
     {
         _next = next;
+        _logger = logger;
     }
+
     public async Task InvokeAsync(HttpContext httpContext)
     {
         try
@@ -25,12 +28,9 @@ public class ExceptionMiddleware
         {
             await HandleExceptionAsync(httpContext, ex, ServiceExceptionStatusCode, ex.ObjetoErro);
         }
-        catch (UnauthorizedAccessException ex)
-        {
-            await HandleExceptionAsync(httpContext, ex, UnauthorizedAccessStatusCode);
-        }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Erro inesperado do sistema.");
             await HandleExceptionAsync(httpContext, ex, ExceptionStatusCode);
         }
     }
@@ -41,13 +41,21 @@ public class ExceptionMiddleware
         int statusCode,
         object objetoErro = null)
     {
+        context.Response.Clear();
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = statusCode;
-        await context.Response.WriteAsync(new DetalhesDoErro()
-        {
-            StatusCode = context.Response.StatusCode,
-            Mensagem = exception.Message,
-            ObjetoErro = objetoErro
-        }.ToString());
+        await context.Response.WriteAsync(
+            JsonSerializer.Serialize(new DetalhesDoErro
+            {
+                StatusCode = statusCode,
+                Mensagem = exception.Message,
+                ObjetoErro = objetoErro
+            }, _jsonOptions));
     }
+
+    private static readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
 }

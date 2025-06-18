@@ -47,6 +47,7 @@ public class ClienteService : IClienteService
 
             return new ClienteDto
             {
+                Id = cliente.Id,
                 Nome = cliente.Nome,
                 Telefone = cliente.Telefone,
                 Email = cliente.Email,

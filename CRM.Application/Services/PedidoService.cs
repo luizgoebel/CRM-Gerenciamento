@@ -13,48 +13,34 @@ public class PedidoService : IPedidoService
 
     public PedidoService(IPedidoRepository pedidoRepository, IClienteRepository clienteRepository)
     {
-        _pedidoRepository = pedidoRepository;
-        _clienteRepository = clienteRepository;
+        this._pedidoRepository = pedidoRepository;
+        this._clienteRepository = clienteRepository;
     }
 
-    public async Task<int> CriarPedido(PedidoDto pedidoDto)
+    public async void CriarPedido(PedidoDto pedidoDto)
     {
-        try
+        Cliente cliente = await this._clienteRepository.ObterPorId(pedidoDto.ClienteId) ??
+            throw new ServiceException($"Cliente não encontrado.");
+
+        if (!cliente.CadastroCompleto())
+            throw new ServiceException("Cadastro incompleto. Atualize o cadastro do cliente para prosseguir com o pedido.");
+
+        Pedido pedido = new()
         {
-            var cliente = await _clienteRepository.ObterPorId(pedidoDto.ClienteId);
-            if (cliente == null)
-                throw new ServiceException($"Cliente com ID {pedidoDto.ClienteId} não encontrado.");
-
-            if (string.IsNullOrEmpty(cliente.Telefone) || string.IsNullOrEmpty(cliente.Endereco))
-                throw new ServiceException("Cadastro incompleto. Atualize o cadastro do cliente para prosseguir com o pedido.");
-
-            var pedido = new Pedido
+            ClienteId = pedidoDto.ClienteId,
+            Itens = pedidoDto.Itens.Select(i => new PedidoItem
             {
-                ClienteId = pedidoDto.ClienteId,
-                Itens = pedidoDto.Itens.Select(i => new PedidoItem
-                {
-                    ProdutoId = i.ProdutoId,
-                    Quantidade = i.Quantidade
-                }).ToList()
-            };
-            return await _pedidoRepository.CriarPedido(pedido);
-        }
-        catch (ServiceException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            throw new ServiceException("Erro ao criar pedido.", ex);
-        }      
+                ProdutoId = i.ProdutoId,
+                Quantidade = i.Quantidade
+            }).ToList()
+        };
+        this._pedidoRepository.CriarPedido(pedido);
     }
 
     public async Task<PedidoDto> ObterPorId(int id)
     {
-        try
-        {
-            var pedido = await _pedidoRepository.ObterPorId(id)
-            ?? throw new ServiceException($"Pedido com ID {id} não encontrado.");
+            Pedido pedido = await this._pedidoRepository.ObterPorId(id)
+            ?? throw new ServiceException($"Pedido não encontrado.");
 
             return new PedidoDto
             {
@@ -66,14 +52,5 @@ public class PedidoService : IPedidoService
                     Quantidade = i.Quantidade
                 }).ToList()
             };
-        }
-        catch (ServiceException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            throw new ServiceException("Erro ao obter pedido por ID.", ex);
-        }
     }
 }

@@ -1,19 +1,27 @@
 ﻿using CRM.Core.Interfaces;
 using CRM.Domain.Entidades;
-using System;
+using CRM.Infrastructure.DbContext;
 using System.Threading.Tasks;
 
 namespace CRM.Infrastructure.Repositories;
 
 public class PedidoRepository : IPedidoRepository
 {
-    public Task<int> CriarPedido(Pedido pedido)
+    private readonly CrmDbContext _context;
+
+    public PedidoRepository(CrmDbContext context)
     {
-        throw new NotImplementedException();
+        this._context = context;
     }
 
-    public Task<Pedido?> ObterPorId(int id)
+    public void CriarPedido(Pedido pedido)
     {
-        throw new NotImplementedException();
+        this._context.Set<Pedido>().Add(pedido);
+        this._context.SaveChanges();
+    }
+
+    public async Task<Pedido?> ObterPorId(int id)
+    {
+        return await this._context.Set<Pedido>().FindAsync(id);
     }
 }

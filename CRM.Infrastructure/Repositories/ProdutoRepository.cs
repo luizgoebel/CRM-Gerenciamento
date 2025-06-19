@@ -1,6 +1,7 @@
 ﻿using CRM.Core.Interfaces;
 using CRM.Domain.Entidades;
-using System;
+using CRM.Infrastructure.DbContext;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -8,28 +9,38 @@ namespace CRM.Infrastructure.Repositories;
 
 public class ProdutoRepository : IProdutoRepository
 {
-    public Task Adicionar(Produto produto)
+    private readonly CrmDbContext _context;
+
+    public ProdutoRepository(CrmDbContext context)
     {
-        throw new NotImplementedException();
+        this._context = context;
     }
 
-    public Task Atualizar(Produto produto)
+    public void Adicionar(Produto produto)
     {
-        throw new NotImplementedException();
+        this._context.Set<Produto>().Add(produto);
+        this._context.SaveChanges();
     }
 
-    public Task<IEnumerable<Produto>> ListarTodos()
+    public void Atualizar(Produto produto)
     {
-        throw new NotImplementedException();
+        this._context.Set<Produto>().Update(produto);
+        this._context.SaveChanges();
     }
 
-    public Task<Produto?> ObterPorId(int id)
+    public void Remover(Produto produto)
     {
-        throw new NotImplementedException();
+        this._context.Set<Produto>().Remove(produto);
+        this._context.SaveChanges();
     }
 
-    public Task Remover(Produto produto)
+    public async Task<IEnumerable<Produto>> ListarTodos()
     {
-        throw new NotImplementedException();
+        return await this._context.Set<Produto>().ToListAsync();
+    }
+
+    public async Task<Produto?> ObterPorId(int id)
+    {
+        return await this._context.Set<Produto>().FindAsync(id);
     }
 }

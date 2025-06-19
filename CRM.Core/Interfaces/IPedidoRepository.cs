@@ -4,6 +4,6 @@ namespace CRM.Core.Interfaces;
 
 public interface IPedidoRepository
 {
-    Task<int> CriarPedido(Pedido pedido);
+    void CriarPedido(Pedido pedido);
     Task<Pedido?> ObterPorId(int id);
 }

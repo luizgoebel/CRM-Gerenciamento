@@ -12,97 +12,42 @@ public class ProdutoService : IProdutoService
 
     public ProdutoService(IProdutoRepository produtoRepository)
     {
-        _produtoRepository = produtoRepository;
+        this._produtoRepository = produtoRepository;
     }
 
-    public async Task Adicionar(ProdutoDto produtoDto)
+    public void Adicionar(ProdutoDto produtoDto)
     {
-        try
-        {
-            var produto = new Produto { Nome = produtoDto.Nome!, Preco = produtoDto?.Preco };
-            await _produtoRepository.Adicionar(produto);
-        }
-        catch (ServiceException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            throw new ServiceException("Erro ao adicionar produto.", ex);
-        }
-
+        Produto produto = new() { Nome = produtoDto.Nome, Preco = produtoDto?.Preco };
+        this._produtoRepository.Adicionar(produto);
     }
 
     public async Task<IEnumerable<ProdutoDto>> ListarTodos()
     {
-        try
-        {
-            var produtos = await _produtoRepository.ListarTodos();
-            return produtos.Select(p => new ProdutoDto { Nome = p.Nome, Preco = p.Preco });
-        }
-        catch (ServiceException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            throw new ServiceException("Erro ao listar produtos.", ex);
-        }
+        IEnumerable<Produto> produtos = [];
+        produtos = await this._produtoRepository.ListarTodos();
+        return produtos.Select(p => new ProdutoDto { Nome = p.Nome, Preco = p.Preco });
     }
 
     public async Task<ProdutoDto> ObterPorId(int id)
     {
-        try
-        {
-            var produto = await _produtoRepository.ObterPorId(id)
-            ?? throw new ServiceException($"Produto com ID {id} não encontrado.");
+            Produto produto = await this._produtoRepository.ObterPorId(id)
+            ?? throw new ServiceException($"Produto não encontrado.");
             return new ProdutoDto { Id = produto.Id, Nome = produto.Nome, Preco = produto.Preco };
-        }
-        catch (ServiceException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            throw new ServiceException("Erro ao obter produto por ID.", ex);
-        }
     }
 
-    public async Task Atualizar(int id, ProdutoDto produtoDto)
-    {        
-        try
-        {
-            var produto = await _produtoRepository.ObterPorId(id)
-            ?? throw new ServiceException($"Produto com ID {id} não encontrado.");
+    public void Atualizar(ProdutoDto produtoDto)
+    {
+            Produto produto = this._produtoRepository.ObterPorId(produtoDto.Id).GetAwaiter().GetResult()
+            ?? throw new ServiceException($"Produto não encontrado.");
             produto.Nome = produtoDto.Nome!;
             produto.Preco = produtoDto.Preco;
-            await _produtoRepository.Atualizar(produto);
-        }
-        catch (ServiceException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            throw new ServiceException("Erro ao atualizar produto.", ex);
-        }
+            this._produtoRepository.Atualizar(produto);
     }
 
-    public async Task Remover(int id)
+    public void Remover(int id)
     {
-        try
-        {
-            var produto = await _produtoRepository.ObterPorId(id)
-            ?? throw new ServiceException($"Produto com ID {id} não encontrado.");
-            await _produtoRepository.Remover(produto);
-        }
-        catch (ServiceException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            throw new ServiceException("Erro ao remover produto.", ex);
-        }
+            Produto produto = this._produtoRepository.ObterPorId(id).GetAwaiter().GetResult()
+            ?? throw new ServiceException($"Produto não encontrado.");
+            this._produtoRepository.Remover(produto);
     }
 }

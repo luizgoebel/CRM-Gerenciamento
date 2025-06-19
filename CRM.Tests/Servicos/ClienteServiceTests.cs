@@ -23,7 +23,7 @@ public class ClienteServiceTests
     }
 
     [Test]
-    public async Task Adicionar_DeveRetornarIdDoClienteCriado()
+    public void Adicionar_DeveRetornarIdDoClienteCriado()
     {
         // Arrange
         var clienteDto = new ClienteDto { Nome = "João", Email = "joao@email.com" };
@@ -31,19 +31,25 @@ public class ClienteServiceTests
 
         _clienteRepositoryMock
             .Setup(r => r.Adicionar(It.IsAny<Cliente>()))
-            .ReturnsAsync(cliente.Id);
+            .Callback<Cliente>(c => c.Id = cliente.Id);
+
+        _clienteRepositoryMock
+            .Setup(r => r.ObterPorId(cliente.Id))
+            .ReturnsAsync(cliente);
 
         // Act
-        var idRetornado = await _clienteService.Adicionar(clienteDto);
+        _clienteService.Adicionar(clienteDto);
+        var clienteRecuperado = _clienteRepositoryMock.Object.ObterPorId(cliente.Id).Result;
 
         // Assert
-        Assert.AreEqual(cliente.Id, idRetornado);
+        Assert.IsNotNull(clienteRecuperado);
+        Assert.AreEqual(cliente.Id, clienteRecuperado.Id);
     }
 
     [Test]
     public void Adicionar_QuandoDtoForNulo_DeveLancarServiceException()
     {
-        Assert.ThrowsAsync<ServiceException>(async () => await _clienteService.Adicionar(null!));
+        Assert.Throws<ServiceException>(() => _clienteService.Adicionar(null));
     }
 
     [Test]
@@ -76,19 +82,31 @@ public class ClienteServiceTests
     public async Task Atualizar_DeveExecutarSemExcecao_QuandoClienteExiste()
     {
         var clienteExistente = new Cliente { Id = 1, Nome = "Carlos", Email = "carlos@email.com" };
-        var clienteDto = new ClienteDto { Nome = "Carlos Atualizado", Email = "carlos@email.com" };
+        var clienteDto = new ClienteDto { Id = 1, Nome = "Carlos Atualizado", Email = "carlos@email.com" };
 
-        _clienteRepositoryMock.Setup(r => r.ObterPorId(clienteExistente.Id)).ReturnsAsync(clienteExistente);
-        _clienteRepositoryMock.Setup(r => r.Atualizar(clienteExistente)).Returns(Task.CompletedTask);
+        _clienteRepositoryMock.Setup(r => r.ObterPorId(clienteExistente.Id))
+            .ReturnsAsync(clienteExistente);
 
-        Assert.DoesNotThrowAsync(async () => await _clienteService.Atualizar(clienteExistente.Id, clienteDto));
+        _clienteRepositoryMock.Setup(r => r.Atualizar(clienteExistente));
+
+        Assert.DoesNotThrow(() => _clienteService.Atualizar(clienteDto));
     }
+
 
     [Test]
     public void Atualizar_QuandoClienteNaoEncontrado_DeveLancarServiceException()
     {
-        _clienteRepositoryMock.Setup(r => r.ObterPorId(It.IsAny<int>())).ReturnsAsync((Cliente?)null);
+        // Arrange
+        var clienteDto = new ClienteDto { Id = 999, Nome = "Inexistente", Email = "inexistente@email.com" };
+        _clienteRepositoryMock
+            .Setup(r => r.ObterPorId(clienteDto.Id))
+            .ReturnsAsync((Cliente?)null);
 
-        Assert.ThrowsAsync<ServiceException>(async () => await _clienteService.Atualizar(999, new ClienteDto()));
+        // Act & Assert
+        var ex = Assert.Throws<ServiceException>(() =>
+            _clienteService.Atualizar(clienteDto));
+
+        Assert.That(ex.Message, Is.EqualTo("Cliente não encontrado."));
     }
+
 }

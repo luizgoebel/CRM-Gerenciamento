@@ -29,10 +29,9 @@ public class ProdutoServiceTests
 
         _produtoRepositoryMock
             .Setup(r => r.Adicionar(It.IsAny<Produto>()))
-            .Returns(Task.CompletedTask)
             .Verifiable();
 
-        await _produtoService.Adicionar(produtoDto);
+         _produtoService.Adicionar(produtoDto);
 
         _produtoRepositoryMock.Verify(r => r.Adicionar(It.Is<Produto>(p =>
             p.Nome == produtoDto.Nome && p.Preco == produtoDto.Preco)), Times.Once);
@@ -80,16 +79,15 @@ public class ProdutoServiceTests
     [Test]
     public async Task Atualizar_QuandoProdutoExiste_DeveChamarRepositorio()
     {
-        var produtoDto = new ProdutoDto { Nome = "Produto Atualizado", Preco = 15 };
+        var produtoDto = new ProdutoDto { Id = 1, Nome = "Produto Atualizado", Preco = 15 };
 
         _produtoRepositoryMock.Setup(r => r.ObterPorId(1))
             .ReturnsAsync(new Produto { Id = 1, Nome = "Produto Antigo", Preco = 10 });
 
         _produtoRepositoryMock.Setup(r => r.Atualizar(It.IsAny<Produto>()))
-            .Returns(Task.CompletedTask)
             .Verifiable();
 
-        await _produtoService.Atualizar(1, produtoDto);
+        _produtoService.Atualizar(produtoDto);
 
         _produtoRepositoryMock.Verify(r => r.Atualizar(It.Is<Produto>(p =>
             p.Id == 1 && p.Nome == produtoDto.Nome && p.Preco == produtoDto.Preco)), Times.Once);
@@ -102,7 +100,7 @@ public class ProdutoServiceTests
 
         var produtoDto = new ProdutoDto { Nome = "Produto", Preco = 10 };
 
-        Assert.ThrowsAsync<ServiceException>(async () => await _produtoService.Atualizar(999, produtoDto));
+        Assert.Throws<ServiceException>(() => _produtoService.Atualizar(produtoDto));
     }
 
     [Test]
@@ -114,10 +112,9 @@ public class ProdutoServiceTests
             .ReturnsAsync(produto);
 
         _produtoRepositoryMock.Setup(r => r.Remover(It.IsAny<Produto>()))
-            .Returns(Task.CompletedTask)
             .Verifiable();
 
-        await _produtoService.Remover(1);
+         _produtoService.Remover(1);
 
         _produtoRepositoryMock.Verify(r => r.Remover(It.Is<Produto>(p => p.Id == 1)), Times.Once);
     }
@@ -127,6 +124,6 @@ public class ProdutoServiceTests
     {
         _produtoRepositoryMock.Setup(r => r.ObterPorId(It.IsAny<int>())).ReturnsAsync((Produto?)null);
 
-        Assert.ThrowsAsync<ServiceException>(async () => await _produtoService.Remover(999));
+        Assert.Throws<ServiceException>(() => _produtoService.Remover(999));
     }
 }

@@ -4,6 +4,6 @@ namespace CRM.Application.Interfaces;
 
 public interface IPedidoService
 {
-    Task<int> CriarPedido(PedidoDto pedidoDto);
+    void CriarPedido(PedidoDto pedidoDto);
     Task<PedidoDto> ObterPorId(int id);
 }

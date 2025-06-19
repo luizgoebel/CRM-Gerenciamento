@@ -9,7 +9,6 @@ public class PedidoItemEntityTypeConfiguration : IEntityTypeConfiguration<Pedido
     public void Configure(EntityTypeBuilder<PedidoItem> builder)
     {
         builder.ToTable("pedido_item");
-
         builder.HasKey(pi => pi.Id);
 
         builder.Property(pi => pi.ProdutoId).IsRequired();
@@ -20,5 +19,10 @@ public class PedidoItemEntityTypeConfiguration : IEntityTypeConfiguration<Pedido
                .WithMany(p => p.Itens)
                .HasForeignKey(pi => pi.PedidoId)
                .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne<Produto>()
+               .WithMany()
+               .HasForeignKey(p => p.ProdutoId)
+               .OnDelete(DeleteBehavior.Restrict);
     }
 }

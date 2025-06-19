@@ -16,9 +16,10 @@ public class ClienteService : IClienteService
 
     public void Adicionar(ClienteDto clienteDto)
     {
-        try
-        {
-            var cliente = new Cliente
+        if (clienteDto == null)
+            throw new ServiceException("Cliente inválido.");
+
+        var cliente = new Cliente
             {
                 Nome = clienteDto.Nome,
                 Telefone = clienteDto.Telefone,
@@ -27,15 +28,6 @@ public class ClienteService : IClienteService
             };
 
             _clienteRepository.Adicionar(cliente);
-        }
-        catch (ServiceException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            throw new ServiceException("Erro ao adicionar cliente.", ex);
-        }
     }
 
     public async Task<ClienteDto> ObterPorId(int id)
@@ -53,28 +45,16 @@ public class ClienteService : IClienteService
         };
     }
 
-
-    public async void Atualizar(ClienteDto clienteDto)
+    public void Atualizar(ClienteDto clienteDto)
     {
-        try
-        {
-            Cliente cliente = await this._clienteRepository.ObterPorId(clienteDto.Id)
-                ?? throw new ServiceException($"Cliente não encontrado.");
+            Cliente cliente = this._clienteRepository.ObterPorId(clienteDto.Id).GetAwaiter().GetResult()
+                  ?? throw new ServiceException("Cliente não encontrado.");
 
-            cliente.Nome = clienteDto.Nome;
+        cliente.Nome = clienteDto.Nome;
             cliente.Telefone = clienteDto.Telefone;
             cliente.Email = clienteDto.Email;
             cliente.Endereco = clienteDto.Endereco;
 
             this._clienteRepository.Atualizar(cliente);
-        }
-        catch (ServiceException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            throw new ServiceException("Erro ao atualizar cliente.", ex);
-        }
     }
 }

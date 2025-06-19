@@ -35,18 +35,18 @@ public class ProdutoService : IProdutoService
             return new ProdutoDto { Id = produto.Id, Nome = produto.Nome, Preco = produto.Preco };
     }
 
-    public async void Atualizar(ProdutoDto produtoDto)
+    public void Atualizar(ProdutoDto produtoDto)
     {
-            Produto produto = await this._produtoRepository.ObterPorId(produtoDto.Id)
+            Produto produto = this._produtoRepository.ObterPorId(produtoDto.Id).GetAwaiter().GetResult()
             ?? throw new ServiceException($"Produto não encontrado.");
             produto.Nome = produtoDto.Nome!;
             produto.Preco = produtoDto.Preco;
             this._produtoRepository.Atualizar(produto);
     }
 
-    public async void Remover(int id)
+    public void Remover(int id)
     {
-            Produto produto = await this._produtoRepository.ObterPorId(id)
+            Produto produto = this._produtoRepository.ObterPorId(id).GetAwaiter().GetResult()
             ?? throw new ServiceException($"Produto não encontrado.");
             this._produtoRepository.Remover(produto);
     }

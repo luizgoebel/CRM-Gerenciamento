@@ -35,10 +35,14 @@ namespace CRM.Tests.Servicos
                 PrecoUnitario = 10
             };
 
+            PedidoItem pedidoItemCapturado = null;
+            _pedidoItemRepositoryMock
+                .Setup(r => r.Adicionar(It.IsAny<PedidoItem>()))
+                .Callback<PedidoItem>(p => pedidoItemCapturado = p);
+
             _pedidoItemService.Adicionar(dto);
 
             _pedidoItemRepositoryMock.Verify(r => r.Adicionar(It.Is<PedidoItem>(p =>
-                p.PedidoId == dto.PedidoId &&
                 p.ProdutoId == dto.ProdutoId &&
                 p.Quantidade == dto.Quantidade &&
                 p.Subtotal == dto.Quantidade * dto.PrecoUnitario

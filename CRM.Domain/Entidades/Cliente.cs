@@ -1,6 +1,6 @@
 ﻿namespace CRM.Domain.Entidades;
 
-public class Cliente
+public class Cliente : BaseModel<Cliente>
 {
     public int Id { get; set; }
     public string Nome { get; set; }

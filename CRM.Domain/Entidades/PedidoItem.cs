@@ -1,12 +1,12 @@
 ﻿namespace CRM.Domain.Entidades;
 
-public class PedidoItem
+public class PedidoItem : BaseModel<PedidoItem>
 {
     public int Id { get; set; }
     public int PedidoId { get; set; }
     public int ProdutoId { get; set; }
-    public Produto? Produto { get; set; }
     public int Quantidade { get; set; }
-    public decimal PrecoUnitario { get; set; }
-    public decimal Subtotal => Quantidade * PrecoUnitario;
+    public decimal Subtotal { get; set; }
+
+    public Produto? Produto { get; set; }
 }

@@ -11,11 +11,6 @@ namespace CRM.Infrastructure.EntityConfigurations
             builder.ToTable("pedido");
             builder.HasKey(p => p.Id);
 
-            builder.Property(p => p.Cliente).IsRequired();
-            builder.Property(p => p.DataCriacao).IsRequired();
-            builder.Property(p => p.Itens).IsRequired();
-            builder.Property(p => p.ValorTotal).IsRequired();
-
             builder.HasOne<Cliente>()
                    .WithMany()
                    .HasForeignKey(p => p.ClienteId)

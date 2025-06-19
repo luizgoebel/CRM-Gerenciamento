@@ -4,9 +4,9 @@ namespace CRM.Core.Interfaces;
 
 public interface IProdutoRepository
 {
-    Task Adicionar(Produto produto);
+    void Adicionar(Produto produto);
     Task<IEnumerable<Produto>> ListarTodos();
     Task<Produto?> ObterPorId(int id);
-    Task Atualizar(Produto produto);
-    Task Remover(Produto produto);
+    void Atualizar(Produto produto);
+    void Remover(Produto produto);
 }

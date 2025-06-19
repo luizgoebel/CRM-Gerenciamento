@@ -14,7 +14,7 @@ public class ClienteService : IClienteService
         _clienteRepository = clienteRepository;
     }
 
-    public async Task<int> Adicionar(ClienteDto clienteDto)
+    public void Adicionar(ClienteDto clienteDto)
     {
         try
         {
@@ -26,7 +26,7 @@ public class ClienteService : IClienteService
                 Endereco = clienteDto.Endereco
             };
 
-            return await _clienteRepository.Adicionar(cliente);
+            _clienteRepository.Adicionar(cliente);
         }
         catch (ServiceException)
         {
@@ -40,43 +40,33 @@ public class ClienteService : IClienteService
 
     public async Task<ClienteDto> ObterPorId(int id)
     {
-        try
-        {
-            var cliente = await _clienteRepository.ObterPorId(id)
-                ?? throw new ServiceException($"Cliente com ID {id} não encontrado.");
+        Cliente cliente = await _clienteRepository.ObterPorId(id)
+            ?? throw new ServiceException("Cliente não encontrado.");
 
-            return new ClienteDto
-            {
-                Id = cliente.Id,
-                Nome = cliente.Nome,
-                Telefone = cliente.Telefone,
-                Email = cliente.Email,
-                Endereco = cliente.Endereco
-            };
-        }
-        catch (ServiceException)
+        return new ClienteDto
         {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            throw new ServiceException("Erro ao obter cliente por ID.", ex);
-        }
+            Id = cliente.Id,
+            Nome = cliente.Nome,
+            Telefone = cliente.Telefone,
+            Email = cliente.Email,
+            Endereco = cliente.Endereco
+        };
     }
 
-    public async Task Atualizar(int id, ClienteDto clienteDto)
+
+    public async void Atualizar(ClienteDto clienteDto)
     {
         try
         {
-            var cliente = await _clienteRepository.ObterPorId(id)
-                ?? throw new ServiceException($"Cliente com ID {id} não encontrado.");
+            Cliente cliente = await this._clienteRepository.ObterPorId(clienteDto.Id)
+                ?? throw new ServiceException($"Cliente não encontrado.");
 
             cliente.Nome = clienteDto.Nome;
             cliente.Telefone = clienteDto.Telefone;
             cliente.Email = clienteDto.Email;
             cliente.Endereco = clienteDto.Endereco;
 
-            await _clienteRepository.Atualizar(cliente);
+            this._clienteRepository.Atualizar(cliente);
         }
         catch (ServiceException)
         {

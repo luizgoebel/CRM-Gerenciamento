@@ -1,24 +1,31 @@
 ﻿using CRM.Core.Interfaces;
 using CRM.Domain.Entidades;
-using System;
+using CRM.Infrastructure.DbContext;
 using System.Threading.Tasks;
-
-namespace CRM.Infrastructure.Repositories;
 
 public class ClienteRepository : IClienteRepository
 {
-    public Task<int> Adicionar(Cliente cliente)
+    private readonly CrmDbContext _context;
+
+    public ClienteRepository(CrmDbContext context)
     {
-        throw new NotImplementedException();
+        this._context = context;
     }
 
-    public Task Atualizar(Cliente cliente)
+    public void Adicionar(Cliente cliente)
     {
-        throw new NotImplementedException();
+        this._context.Set<Cliente>().Add(cliente);
+        this._context.SaveChanges();
     }
 
-    public Task<Cliente?> ObterPorId(int id)
+    public void Atualizar(Cliente cliente)
     {
-        throw new NotImplementedException();
+        this._context.Set<Cliente>().Update(cliente);
+        this. _context.SaveChanges();
+    }
+
+    public async Task<Cliente?> ObterPorId(int id)
+    {
+        return await _context.Set<Cliente>().FindAsync(id);
     }
 }

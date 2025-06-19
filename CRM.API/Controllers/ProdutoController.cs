@@ -2,52 +2,51 @@
 using CRM.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CRM.API.Controllers
+namespace CRM.API.Controllers;
+
+[Route("api/[controller]")]
+[ApiController]
+public class ProdutoController : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class ProdutoController : ControllerBase
+    private readonly IProdutoService _produtoService;
+
+    public ProdutoController(IProdutoService produtoService)
     {
-        private readonly IProdutoService _produtoService;
+        this._produtoService = produtoService;
+    }
 
-        public ProdutoController(IProdutoService produtoService)
-        {
-            _produtoService = produtoService;
-        }
+    [HttpPost("[action]")]
+    public IActionResult Adicionar([FromBody] ProdutoDto produtoDto)
+    {
+        this._produtoService.Adicionar(produtoDto);
+        return Ok();
+    }
 
-        [HttpPost]
-        public async Task<IActionResult> Adicionar([FromBody] ProdutoDto produtoDto)
-        {
-            await _produtoService.Adicionar(produtoDto);
-            return CreatedAtAction(string.Empty, produtoDto);
-        }
+    [HttpGet("[action]")]
+    public async Task<IActionResult> ListarTodos()
+    {
+        IEnumerable<ProdutoDto> produtos = await this._produtoService.ListarTodos();
+        return Ok(produtos);
+    }
 
-        [HttpGet]
-        public async Task<IActionResult> ListarTodos()
-        {
-            var produtos = await _produtoService.ListarTodos();
-            return Ok(produtos);
-        }
+    [HttpGet("[action]")]
+    public async Task<IActionResult> ObterPorId(int id)
+    {
+        ProdutoDto produto = await this._produtoService.ObterPorId(id);
+        return Ok(produto);
+    }
 
-        [HttpGet("{id:int}")]
-        public async Task<IActionResult> ObterPorId(int id)
-        {
-            var produto = await _produtoService.ObterPorId(id);
-            return Ok(produto);
-        }
+    [HttpPost("[action]")]
+    public IActionResult Atualizar(int id, [FromBody] ProdutoDto produtoDto)
+    {
+        this._produtoService.Atualizar(produtoDto);
+        return Ok();
+    }
 
-        [HttpPut("{id:int}")]
-        public async Task<IActionResult> Atualizar(int id, [FromBody] ProdutoDto produtoDto)
-        {
-            await _produtoService.Atualizar(id, produtoDto);
-            return NoContent();
-        }
-
-        [HttpDelete("{id:int}")]
-        public async Task<IActionResult> Remover(int id)
-        {
-            await _produtoService.Remover(id);
-            return NoContent();
-        }
+    [HttpPost("[action]")]
+    public IActionResult Remover(int id)
+    {
+        this._produtoService.Remover(id);
+        return this.Ok();
     }
 }

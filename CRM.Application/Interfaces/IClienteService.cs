@@ -4,7 +4,7 @@ namespace CRM.Application.Interfaces;
 
 public interface IClienteService
 {
-    Task<int> Adicionar(ClienteDto clienteDto);
+    void Adicionar(ClienteDto clienteDto);
     Task<ClienteDto> ObterPorId(int id);
-    Task Atualizar(int id, ClienteDto clienteDto);
+    void Atualizar(ClienteDto clienteDto);
 }

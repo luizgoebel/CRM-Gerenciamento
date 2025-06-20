@@ -6,7 +6,7 @@ public interface IProdutoService
 {
     void Adicionar(ProdutoDto produtoDto);
     Task<IEnumerable<ProdutoDto>> ListarTodos();
-    Task<ProdutoDto> ObterPorId(int id);
+    ProdutoDto ObterPorId(int id);
     void Atualizar(ProdutoDto produtoDto);
     void Remover(int id);
 }

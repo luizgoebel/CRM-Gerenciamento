@@ -21,36 +21,60 @@ public class PedidoService : IPedidoService
     {
         Cliente cliente = await this._clienteRepository.ObterPorId(pedidoDto.ClienteId) ??
             throw new ServiceException($"Cliente não encontrado.");
-
-        if (!cliente.CadastroCompleto())
-            throw new ServiceException("Cadastro incompleto. Atualize o cadastro do cliente para prosseguir com o pedido.");
-
+        
         Pedido pedido = new()
         {
             ClienteId = pedidoDto.ClienteId,
             Itens = pedidoDto.Itens.Select(i => new PedidoItem
             {
                 ProdutoId = i.ProdutoId,
-                Quantidade = i.Quantidade
-            }).ToList()
+                Quantidade = i.Quantidade,
+                Subtotal = i.PrecoUnitario * i.Quantidade
+            }).ToList(),
+            // Total do pedido = soma dos preços dos itens vezes q quantidade
+            ValorTotal = pedidoDto.Itens.Sum(i => i.PrecoUnitario * i.Quantidade)
         };
+
+        ValidarPedido(pedido);
         this._pedidoRepository.CriarPedido(pedido);
     }
 
     public async Task<PedidoDto> ObterPorId(int id)
     {
-            Pedido pedido = await this._pedidoRepository.ObterPorId(id)
-            ?? throw new ServiceException($"Pedido não encontrado.");
+        Pedido pedido = await this._pedidoRepository.ObterPorId(id)
+        ?? throw new ServiceException($"Pedido não encontrado.");
 
-            return new PedidoDto
+        return new PedidoDto
+        {
+            Id = pedido.Id,
+            ClienteId = pedido.ClienteId,
+            Itens = pedido.Itens.Select(i => new PedidoItemDto
             {
-                ClienteId = pedido.ClienteId,
-                Id = pedido.Id,
-                Itens = pedido.Itens.Select(i => new PedidoItemDto
-                {
-                    ProdutoId = i.ProdutoId,
-                    Quantidade = i.Quantidade
-                }).ToList()
-            };
+                ProdutoId = i.ProdutoId,
+                Quantidade = i.Quantidade,
+                PrecoUnitario = i.Subtotal / (i.Quantidade == 0 ? 1 : i.Quantidade)
+            }).ToList()
+        };
+    }
+
+    private void ValidarPedido(Pedido pedido)
+    {
+        if (pedido.Itens == null || pedido.Itens.Count < 1)
+            throw new ServiceException("Pedido deve conter pelo menos um item.");
+
+        var produtosDuplicados = pedido.Itens
+            .GroupBy(i => i.ProdutoId)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .ToList();
+        if (produtosDuplicados.Any())
+            throw new ServiceException("Não é permitido adicionar o mesmo produto mais de uma vez no pedido.");
+
+        if (!pedido.Cliente.CadastroCompleto())
+            throw new DomainException("Cadastro incompleto. Atualize o cadastro do cliente para prosseguir com o pedido.");
+
+        decimal somaItens = pedido.Itens.Sum(i => i.Subtotal);
+        if (pedido.ValorTotal != somaItens)
+            throw new ServiceException("O valor total do pedido está inconsistente com a soma dos subtotais dos itens.");
     }
 }

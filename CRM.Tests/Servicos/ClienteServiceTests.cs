@@ -26,7 +26,7 @@ public class ClienteServiceTests
     public void Adicionar_DeveRetornarIdDoClienteCriado()
     {
         // Arrange
-        var clienteDto = new ClienteDto { Nome = "João", Email = "joao@email.com" };
+        var clienteDto = new ClienteDto { Nome = "João", Email = "joao@email.com", Telefone = "999" };
         var cliente = new Cliente { Id = 1, Nome = clienteDto.Nome, Email = clienteDto.Email };
 
         _clienteRepositoryMock
@@ -50,6 +50,16 @@ public class ClienteServiceTests
     public void Adicionar_QuandoDtoForNulo_DeveLancarServiceException()
     {
         Assert.Throws<ServiceException>(() => _clienteService.Adicionar(null));
+    }
+
+    [Test]
+    public void Adicionar_QuandoNomeForVazio_DeveLancarDomainException()
+    {
+        Assert.Throws<DomainException>(() => _clienteService.Adicionar(new()
+        {
+            Id = 1,
+            Nome = string.Empty,
+        }));
     }
 
     [Test]

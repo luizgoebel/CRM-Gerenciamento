@@ -18,16 +18,17 @@ public class ClienteService : IClienteService
     {
         if (clienteDto == null)
             throw new ServiceException("Cliente inválido.");
+        Cliente cliente = new()
+        {
+            Nome = clienteDto.Nome,
+            Telefone = clienteDto.Telefone,
+            Email = clienteDto.Email,
+            Endereco = clienteDto.Endereco
+        };
 
-        var cliente = new Cliente
-            {
-                Nome = clienteDto.Nome,
-                Telefone = clienteDto.Telefone,
-                Email = clienteDto.Email,
-                Endereco = clienteDto.Endereco
-            };
+        ValidarCadastroParcial(cliente);
 
-            _clienteRepository.Adicionar(cliente);
+        _clienteRepository.Adicionar(cliente);
     }
 
     public async Task<ClienteDto> ObterPorId(int id)
@@ -47,14 +48,22 @@ public class ClienteService : IClienteService
 
     public void Atualizar(ClienteDto clienteDto)
     {
-            Cliente cliente = this._clienteRepository.ObterPorId(clienteDto.Id).GetAwaiter().GetResult()
-                  ?? throw new ServiceException("Cliente não encontrado.");
+        if (clienteDto == null)
+            throw new NullReferenceException("Cliente inválido.");
 
-        cliente.Nome = clienteDto.Nome;
-            cliente.Telefone = clienteDto.Telefone;
-            cliente.Email = clienteDto.Email;
-            cliente.Endereco = clienteDto.Endereco;
+        Cliente cliente = this._clienteRepository.ObterPorId(clienteDto.Id).GetAwaiter().GetResult()
+              ?? throw new ServiceException("Cliente não encontrado.");
 
-            this._clienteRepository.Atualizar(cliente);
+        cliente.Alterar(clienteDto.Nome, clienteDto.Telefone, clienteDto.Email, clienteDto.Endereco);
+
+        this._clienteRepository.Atualizar(cliente);
+    }
+
+    private void ValidarCadastroParcial(Cliente cliente)
+    {
+        ValidationResult resultado = cliente.ValidarCadastroParcial();
+
+        if (!resultado.IsValid)
+            throw new DomainException(resultado.Erros.First());
     }
 }

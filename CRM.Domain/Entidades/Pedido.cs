@@ -6,5 +6,5 @@ public class Pedido : BaseModel<Pedido>
     public int ClienteId { get; set; }
     public Cliente? Cliente { get; set; }
     public List<PedidoItem> Itens { get; set; } = new();
-    public decimal ValorTotal => Itens.Sum(i => i.Subtotal);
+    public decimal ValorTotal { get; set; }
 }

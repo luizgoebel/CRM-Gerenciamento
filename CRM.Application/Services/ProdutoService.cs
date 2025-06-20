@@ -17,7 +17,8 @@ public class ProdutoService : IProdutoService
 
     public void Adicionar(ProdutoDto produtoDto)
     {
-        Produto produto = new() { Nome = produtoDto.Nome, Preco = produtoDto?.Preco };
+        Produto produto = new() { Nome = produtoDto.Nome, Preco = produtoDto.Preco };
+        Validar(produto);
         this._produtoRepository.Adicionar(produto);
     }
 
@@ -28,26 +29,38 @@ public class ProdutoService : IProdutoService
         return produtos.Select(p => new ProdutoDto { Nome = p.Nome, Preco = p.Preco });
     }
 
-    public async Task<ProdutoDto> ObterPorId(int id)
+    public ProdutoDto ObterPorId(int id)
     {
-            Produto produto = await this._produtoRepository.ObterPorId(id)
-            ?? throw new ServiceException($"Produto não encontrado.");
-            return new ProdutoDto { Id = produto.Id, Nome = produto.Nome, Preco = produto.Preco };
+        Produto produto = RecuperarProduto(id);
+        return new ProdutoDto { Id = produto.Id, Nome = produto.Nome, Preco = produto.Preco };
     }
 
     public void Atualizar(ProdutoDto produtoDto)
     {
-            Produto produto = this._produtoRepository.ObterPorId(produtoDto.Id).GetAwaiter().GetResult()
-            ?? throw new ServiceException($"Produto não encontrado.");
-            produto.Nome = produtoDto.Nome!;
-            produto.Preco = produtoDto.Preco;
-            this._produtoRepository.Atualizar(produto);
+        Produto produto = RecuperarProduto(produtoDto.Id);
+        produto.Nome = produtoDto.Nome!;
+        produto.Preco = produtoDto.Preco;
+        Validar(produto);
+        this._produtoRepository.Atualizar(produto);
     }
 
     public void Remover(int id)
     {
-            Produto produto = this._produtoRepository.ObterPorId(id).GetAwaiter().GetResult()
+        Produto produto = RecuperarProduto(id);
+        this._produtoRepository.Remover(produto);
+    }
+
+    private void Validar(Produto produto)
+    {
+        ValidationResult resultado = produto.Validar();
+
+        if (!resultado.IsValid)
+            throw new DomainException(resultado.Erros.First());
+    }
+
+    private Produto RecuperarProduto(int id)
+    {
+        return this._produtoRepository.ObterPorId(id).GetAwaiter().GetResult()
             ?? throw new ServiceException($"Produto não encontrado.");
-            this._produtoRepository.Remover(produto);
     }
 }

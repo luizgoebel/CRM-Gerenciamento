@@ -61,7 +61,7 @@ public class ProdutoServiceTests
 
         _produtoRepositoryMock.Setup(r => r.ObterPorId(1)).ReturnsAsync(produto);
 
-        var resultado = await _produtoService.ObterPorId(1);
+        var resultado = _produtoService.ObterPorId(1);
 
         Assert.IsNotNull(resultado);
         Assert.AreEqual(produto.Id, resultado.Id);
@@ -73,7 +73,7 @@ public class ProdutoServiceTests
     {
         _produtoRepositoryMock.Setup(r => r.ObterPorId(It.IsAny<int>())).ReturnsAsync((Produto?)null);
 
-        Assert.ThrowsAsync<ServiceException>(async () => await _produtoService.ObterPorId(999));
+        Assert.Throws<ServiceException>(() => _produtoService.ObterPorId(999));
     }
 
     [Test]

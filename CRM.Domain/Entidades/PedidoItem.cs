@@ -7,6 +7,12 @@ public class PedidoItem : BaseModel<PedidoItem>
     public int ProdutoId { get; set; }
     public int Quantidade { get; set; }
     public decimal Subtotal { get; set; }
-
     public Produto? Produto { get; set; }
+
+    public ValidationResult Validar()
+    {
+        ValidationResult result = new();
+
+        return result;
+    }
 }

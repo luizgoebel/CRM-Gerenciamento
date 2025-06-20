@@ -11,10 +11,6 @@ public class PedidoItemEntityTypeConfiguration : IEntityTypeConfiguration<Pedido
         builder.ToTable("pedido_item");
         builder.HasKey(pi => pi.Id);
 
-        builder.Property(pi => pi.ProdutoId).IsRequired();
-        builder.Property(pi => pi.Quantidade).IsRequired();
-        builder.Property(pi => pi.Subtotal).IsRequired();
-
         builder.HasOne<Pedido>()
                .WithMany(p => p.Itens)
                .HasForeignKey(pi => pi.PedidoId)

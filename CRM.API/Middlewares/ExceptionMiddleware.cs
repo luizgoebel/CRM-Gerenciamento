@@ -10,6 +10,7 @@ public class ExceptionMiddleware
     private readonly RequestDelegate _next;
     private const int ExceptionStatusCode = 500;
     private const int ServiceExceptionStatusCode = 503;
+    private const int DomainExceptionStatusCode = 400;
     private readonly ILogger<ExceptionMiddleware> _logger;
 
     public ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger)
@@ -27,6 +28,10 @@ public class ExceptionMiddleware
         catch (ServiceException ex)
         {
             await HandleExceptionAsync(httpContext, ex, ServiceExceptionStatusCode, ex.ObjetoErro);
+        }
+        catch (DomainException ex)
+        {
+            await HandleExceptionAsync(httpContext, ex, DomainExceptionStatusCode, ex.ObjetoErro);
         }
         catch (Exception ex)
         {

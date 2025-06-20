@@ -27,6 +27,8 @@ public class PedidoItemService : IPedidoItemService
             Subtotal = dto.Quantidade * dto.PrecoUnitario
         };
 
+        Validar(item);
+
         this._pedidoItemRepository.Adicionar(item);
     }
 
@@ -35,9 +37,9 @@ public class PedidoItemService : IPedidoItemService
         PedidoItem item = this._pedidoItemRepository.ObterPorId(dto.Id).GetAwaiter().GetResult()
             ?? throw new ServiceException("Item não encontrado.");
 
-        item.ProdutoId = dto.ProdutoId;
-        item.Quantidade = dto.Quantidade;
-        item.Subtotal = dto.Quantidade * dto.PrecoUnitario;
+        var subtotal = dto.Quantidade * dto.PrecoUnitario;
+
+        item.Alterar(dto.PedidoId, dto.ProdutoId, dto.Quantidade, subtotal);
 
         this._pedidoItemRepository.Atualizar(item);
     }
@@ -78,5 +80,13 @@ public class PedidoItemService : IPedidoItemService
             Quantidade = item.Quantidade,
             PrecoUnitario = item.Subtotal / item.Quantidade
         });
+    }
+
+    private void Validar(PedidoItem pedidoItem)
+    {
+        ValidationResult resultado = pedidoItem.Validar();
+
+        if (!resultado.IsValid)
+            throw new DomainException(resultado.Erros.First());
     }
 }

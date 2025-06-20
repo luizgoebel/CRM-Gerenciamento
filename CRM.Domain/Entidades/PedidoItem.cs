@@ -13,6 +13,17 @@ public class PedidoItem : BaseModel<PedidoItem>
     {
         ValidationResult result = new();
 
+        if (this.PedidoId <= 0 || this.ProdutoId <= 0 || this.Quantidade <= 0 || this.Subtotal <= 0)
+            result.AddError("Pedido inválido.");
+
         return result;
+    }
+
+    public void Alterar(int pedidoId, int produtoId, int quantidade, decimal subtotal)
+    {
+        this.PedidoId = pedidoId;
+        this.ProdutoId = produtoId;
+        this.Quantidade = quantidade;
+        this.Subtotal = subtotal;
     }
 }

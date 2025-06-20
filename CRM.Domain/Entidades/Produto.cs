@@ -17,4 +17,10 @@ public class Produto : BaseModel<Produto>
 
         return result;
     }
+
+    public void Alterar(string nome, decimal preco)
+    {
+        this.Nome = nome;
+        this.Preco = preco;
+    }
 }

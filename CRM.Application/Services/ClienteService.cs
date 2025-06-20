@@ -18,6 +18,7 @@ public class ClienteService : IClienteService
     {
         if (clienteDto == null)
             throw new ServiceException("Cliente inválido.");
+
         Cliente cliente = new()
         {
             Nome = clienteDto.Nome,

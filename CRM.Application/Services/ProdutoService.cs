@@ -38,8 +38,7 @@ public class ProdutoService : IProdutoService
     public void Atualizar(ProdutoDto produtoDto)
     {
         Produto produto = RecuperarProduto(produtoDto.Id);
-        produto.Nome = produtoDto.Nome!;
-        produto.Preco = produtoDto.Preco;
+        produto.Alterar(produtoDto.Nome, produtoDto.Preco);
         Validar(produto);
         this._produtoRepository.Atualizar(produto);
     }

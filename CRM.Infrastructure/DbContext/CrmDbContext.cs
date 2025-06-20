@@ -1,4 +1,5 @@
-﻿using CRM.Infrastructure.EntityConfigurations;
+﻿using CRM.Domain.Entidades;
+using CRM.Infrastructure.EntityConfigurations;
 using Microsoft.EntityFrameworkCore;
 
 namespace CRM.Infrastructure.DbContext;
@@ -13,5 +14,7 @@ public sealed class CrmDbContext : Microsoft.EntityFrameworkCore.DbContext
         // Additional model configurations can be added here
         modelBuilder.ApplyConfiguration(new ClienteEntityTypeConfiguration());
         modelBuilder.ApplyConfiguration(new PedidoItemEntityTypeConfiguration());
+        modelBuilder.ApplyConfiguration(new PedidoEntityTypeConfiguration());
+        modelBuilder.ApplyConfiguration(new ProdutoEntityTypeConfiguration());
     }
 }

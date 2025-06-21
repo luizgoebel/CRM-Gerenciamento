@@ -13,19 +13,17 @@ public static class PedidoItemMapper
             PedidoId = item.PedidoId,
             ProdutoId = item.ProdutoId,
             Quantidade = item.Quantidade,
-            PrecoUnitario = item.Quantidade > 0 ? item.Subtotal / item.Quantidade : 0
+            PrecoUnitario = item.PrecoUnitario
         };
     }
 
     public static PedidoItem ToModel(this PedidoItemDto dto)
     {
-        return new PedidoItem
-        {
-            Id = dto.Id,
-            PedidoId = dto.PedidoId,
-            ProdutoId = dto.ProdutoId,
-            Quantidade = dto.Quantidade,
-            Subtotal = dto.Quantidade * dto.PrecoUnitario
-        };
+        return new PedidoItem(
+            dto.PedidoId,
+            dto.ProdutoId,
+            dto.Quantidade,
+            dto.PrecoUnitario
+        );
     }
 }

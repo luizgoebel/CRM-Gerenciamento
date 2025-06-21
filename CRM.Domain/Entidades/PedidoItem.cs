@@ -6,9 +6,24 @@ public class PedidoItem : BaseModel<PedidoItem>
     public int PedidoId { get; set; }
     public int ProdutoId { get; set; }
     public int Quantidade { get; set; }
-    public decimal Subtotal { get; set; }
+    public decimal PrecoUnitario { get; private set; }
+
+    // Subtotal is now calculated from Quantidade and PrecoUnitario
+    public decimal Subtotal => Quantidade * PrecoUnitario;
+
     public virtual Produto? Produto { get; set; }
     public virtual Pedido? Pedido { get; set; }
+
+    // Add a constructor or method to set PrecoUnitario
+    public PedidoItem() { }
+
+    public PedidoItem(int pedidoId, int produtoId, int quantidade, decimal precoUnitario)
+    {
+        PedidoId = pedidoId;
+        ProdutoId = produtoId;
+        Quantidade = quantidade;
+        PrecoUnitario = precoUnitario;
+    }
 
     public ValidationResult Validar()
     {
@@ -20,11 +35,11 @@ public class PedidoItem : BaseModel<PedidoItem>
         return result;
     }
 
-    public void Alterar(int pedidoId, int produtoId, int quantidade, decimal subtotal)
+    public void Alterar(int pedidoId, int produtoId, int quantidade, decimal precoUnitario)
     {
-        this.PedidoId = pedidoId;
-        this.ProdutoId = produtoId;
-        this.Quantidade = quantidade;
-        this.Subtotal = subtotal;
+        PedidoId = pedidoId;
+        ProdutoId = produtoId;
+        Quantidade = quantidade;
+        PrecoUnitario = precoUnitario;
     }
 }

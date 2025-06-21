@@ -39,6 +39,7 @@ public class PedidoService : IPedidoService
         return pedidoDto;
     }
 
+    // ...existing code...
     private void ValidarPedido(Pedido pedido)
     {
         if (pedido.Itens == null || pedido.Itens.Count < 1)

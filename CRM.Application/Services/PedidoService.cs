@@ -54,10 +54,10 @@ public class PedidoService : IPedidoService
             throw new ServiceException("Não é permitido adicionar o mesmo produto mais de uma vez no pedido.");
 
         if(pedido.Cliente == null)
-            throw new DomainException("Não há um cliente associado ao pedido.");
+            throw new ServiceException("Não há um cliente associado ao pedido.");
 
         if (!pedido.Cliente.CadastroCompleto())
-            throw new DomainException("Cadastro incompleto. Atualize o cadastro do cliente para prosseguir com o pedido.");
+            throw new ServiceException("Cadastro incompleto. Atualize o cadastro do cliente para prosseguir com o pedido.");
 
         decimal somaItens = pedido.Itens.Sum(i => i.Subtotal);
         if (pedido.ValorTotal != somaItens)

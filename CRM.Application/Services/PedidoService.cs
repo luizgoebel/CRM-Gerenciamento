@@ -24,6 +24,7 @@ public class PedidoService : IPedidoService
             throw new ServiceException($"Cliente não encontrado.");
 
         Pedido pedido = pedidoDto.ToModel();
+        pedido.Cliente = cliente;
 
         ValidarPedido(pedido);
         this._pedidoRepository.CriarPedido(pedido);

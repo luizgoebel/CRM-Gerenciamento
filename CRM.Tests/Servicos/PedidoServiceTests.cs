@@ -45,7 +45,9 @@ public class PedidoServiceTests
                 Nome = "João",
                 Email = "joao@email.com",
                 Endereco = "endereço",
-                Telefone = "00000"
+                Telefone = "00000",
+                DataCriacao = DateTime.Now,
+                DataModificacao = DateTime.Now
             });
 
         _pedidoRepositoryMock

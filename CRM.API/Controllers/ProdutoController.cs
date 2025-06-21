@@ -37,7 +37,7 @@ public class ProdutoController : ControllerBase
     }
 
     [HttpPost("[action]")]
-    public IActionResult Atualizar(int id, [FromBody] ProdutoDto produtoDto)
+    public IActionResult Atualizar([FromBody] ProdutoDto produtoDto)
     {
         this._produtoService.Atualizar(produtoDto);
         return Ok();

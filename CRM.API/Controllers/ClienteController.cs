@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CRM.API.Controllers;
 
-[Route("api/[controller]")]
 [ApiController]
+[Route("api/[controller]")]
 public class ClienteController : ControllerBase
 {
     private readonly IClienteService _clienteService;

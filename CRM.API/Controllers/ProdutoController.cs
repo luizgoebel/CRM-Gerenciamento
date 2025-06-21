@@ -30,7 +30,7 @@ public class ProdutoController : ControllerBase
     }
 
     [HttpGet("[action]")]
-    public async Task<IActionResult> ObterPorId(int id)
+    public IActionResult ObterPorId(int id)
     {
         ProdutoDto produto = this._produtoService.ObterPorId(id);
         return Ok(produto);

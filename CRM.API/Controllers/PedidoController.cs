@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CRM.API.Controllers;
 
-[Route("api/[controller]")]
 [ApiController]
+[Route("api/[controller]")]
 public class PedidoController : ControllerBase
 {
     private readonly IPedidoService _pedidoService;
@@ -22,7 +22,7 @@ public class PedidoController : ControllerBase
         return Ok(pedidoDto);
     }
 
-    [HttpPost]
+    [HttpPost("[action]")]
     public IActionResult CriarPedido([FromBody] PedidoDto pedidoDto)
     {
         this._pedidoService.CriarPedido(pedidoDto);

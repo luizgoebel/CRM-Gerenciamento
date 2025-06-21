@@ -37,7 +37,7 @@ public class PedidoItemController : ControllerBase
     }
 
     [HttpPost("[action]")]
-    public IActionResult Atualizar(int id, [FromBody] PedidoItemDto dto)
+    public IActionResult Atualizar([FromBody] PedidoItemDto dto)
     {
         this._pedidoItemService.Atualizar(dto);
         return Ok();

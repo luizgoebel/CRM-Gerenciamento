@@ -8,6 +8,7 @@ public class PedidoItem : BaseModel<PedidoItem>
     public int Quantidade { get; set; }
     public decimal Subtotal { get; set; }
     public virtual Produto? Produto { get; set; }
+    public virtual Pedido? Pedido { get; set; }
 
     public ValidationResult Validar()
     {

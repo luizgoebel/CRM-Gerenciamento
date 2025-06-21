@@ -24,7 +24,6 @@ public class PedidoItemService : IPedidoItemService
         {
             ProdutoId = dto.ProdutoId,
             Quantidade = dto.Quantidade,
-            Subtotal = dto.Quantidade * dto.PrecoUnitario
         };
 
         Validar(item);

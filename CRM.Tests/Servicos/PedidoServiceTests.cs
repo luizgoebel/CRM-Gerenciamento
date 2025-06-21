@@ -25,7 +25,7 @@ public class PedidoServiceTests
     }
 
     [Test]
-    public async Task CriarPedido_DeveRetornarIdDoPedidoCriado()
+    public async Task CriarPedido_DevePermitirObterPedidoPorId()
     {
         // Arrange  
         var pedidoDto = new PedidoDto
@@ -33,9 +33,9 @@ public class PedidoServiceTests
             Id = 0,
             ClienteId = 1,
             Itens = new List<PedidoItemDto>
-        {
-            new PedidoItemDto { ProdutoId = 1, Quantidade = 2 }
-        }
+            {
+                new PedidoItemDto { ProdutoId = 1, Quantidade = 2 }
+            }
         };
 
         _clienteRepositoryMock.Setup(r => r.ObterPorId(pedidoDto.ClienteId))
@@ -60,13 +60,13 @@ public class PedidoServiceTests
                 ClienteId = pedidoDto.ClienteId,
                 Itens = new List<PedidoItem>
                 {
-                new PedidoItem { ProdutoId = 1, Quantidade = 2 }
+                    new PedidoItem { ProdutoId = 1, Quantidade = 2 }
                 }
             });
 
         // Act  
         _pedidoService.CriarPedido(pedidoDto);
-        var teste = await _pedidoService.ObterPorId(1); // <= fixado aqui
+        var teste = await _pedidoService.ObterPorId(1);
 
         // Assert  
         Assert.AreEqual(1, teste.Id);

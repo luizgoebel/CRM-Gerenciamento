@@ -1,6 +1,7 @@
 ﻿using CRM.Application.DTOs;
 using CRM.Application.Exceptions;
 using CRM.Application.Interfaces;
+using CRM.Application.Mappers;
 using CRM.Core.Interfaces;
 using CRM.Domain.Entidades;
 
@@ -19,14 +20,7 @@ public class ClienteService : IClienteService
         if (clienteDto == null)
             throw new ServiceException("Cliente inválido.");
 
-        Cliente cliente = new()
-        {
-            Nome = clienteDto.Nome,
-            Telefone = clienteDto.Telefone,
-            Email = clienteDto.Email,
-            Endereco = clienteDto.Endereco
-        };
-
+        Cliente cliente = clienteDto.ToModel();
         ValidarCadastroParcial(cliente);
 
         _clienteRepository.Adicionar(cliente);
@@ -36,21 +30,15 @@ public class ClienteService : IClienteService
     {
         Cliente cliente = await _clienteRepository.ObterPorId(id)
             ?? throw new ServiceException("Cliente não encontrado.");
+        ClienteDto clienteDto = cliente.ToDto();
 
-        return new ClienteDto
-        {
-            Id = cliente.Id,
-            Nome = cliente.Nome,
-            Telefone = cliente.Telefone,
-            Email = cliente.Email,
-            Endereco = cliente.Endereco
-        };
+        return clienteDto;
     }
 
     public void Atualizar(ClienteDto clienteDto)
     {
         if (clienteDto == null)
-            throw new NullReferenceException("Cliente inválido.");
+            throw new NullReferenceException();
 
         Cliente cliente = this._clienteRepository.ObterPorId(clienteDto.Id).GetAwaiter().GetResult()
               ?? throw new ServiceException("Cliente não encontrado.");

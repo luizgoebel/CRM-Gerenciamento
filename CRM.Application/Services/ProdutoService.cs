@@ -1,6 +1,7 @@
 ﻿using CRM.Application.DTOs;
 using CRM.Application.Exceptions;
 using CRM.Application.Interfaces;
+using CRM.Application.Mappers;
 using CRM.Core.Interfaces;
 using CRM.Domain.Entidades;
 
@@ -32,7 +33,8 @@ public class ProdutoService : IProdutoService
     public ProdutoDto ObterPorId(int id)
     {
         Produto produto = RecuperarProduto(id);
-        return new ProdutoDto { Id = produto.Id, Nome = produto.Nome, Preco = produto.Preco };
+        ProdutoDto produtoDto = produto.ToDto();
+        return produtoDto;
     }
 
     public void Atualizar(ProdutoDto produtoDto)

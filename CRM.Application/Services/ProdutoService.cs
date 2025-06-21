@@ -27,7 +27,11 @@ public class ProdutoService : IProdutoService
     {
         IEnumerable<Produto> produtos = [];
         produtos = await this._produtoRepository.ListarTodos();
-        return produtos.Select(p => new ProdutoDto { Nome = p.Nome, Preco = p.Preco });
+
+        if (produtos == null || !produtos.Any())
+            throw new ServiceException("Nenhum produto encontrado.");
+
+        return produtos.Select(p => p.ToDto());
     }
 
     public ProdutoDto ObterPorId(int id)

@@ -33,7 +33,6 @@ public class PedidoItemService : IPedidoItemService
         PedidoItem item = this._pedidoItemRepository.ObterPorId(dto.Id).GetAwaiter().GetResult()
             ?? throw new ServiceException("Item não encontrado.");
 
-        // Now pass precoUnitario instead of subtotal
         item.Alterar(dto.PedidoId, dto.ProdutoId, dto.Quantidade, dto.PrecoUnitario);
 
         this._pedidoItemRepository.Atualizar(item);

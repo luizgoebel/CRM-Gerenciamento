@@ -16,6 +16,12 @@ public class ClienteController : ControllerBase
     }
 
     [HttpGet("[action]")]
+    public async Task<List<ClienteDto>> ObterTodosClientes()
+    {
+        List<ClienteDto> clientes = await _clienteService.ObterTodosClientes();
+        return clientes;
+    }
+    [HttpGet("[action]")]
     public async Task<IActionResult> ObterPorId(int id)
     {
         ClienteDto clienteDto = await _clienteService.ObterPorId(id);

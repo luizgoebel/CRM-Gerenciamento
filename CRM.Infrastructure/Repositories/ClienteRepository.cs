@@ -1,6 +1,8 @@
 ﻿using CRM.Core.Interfaces;
 using CRM.Domain.Entidades;
 using CRM.Infrastructure.DbContext;
+using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 public class ClienteRepository : IClienteRepository
@@ -27,5 +29,10 @@ public class ClienteRepository : IClienteRepository
     public async Task<Cliente?> ObterPorId(int id)
     {
         return await _context.Set<Cliente>().FindAsync(id);
+    }
+
+    public async Task<List<Cliente>> ObterTodosClientes()
+    {
+        return await _context.Set<Cliente>().ToListAsync();
     }
 }

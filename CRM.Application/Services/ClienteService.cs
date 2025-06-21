@@ -55,4 +55,14 @@ public class ClienteService : IClienteService
         if (!resultado.IsValid)
             throw new DomainException(resultado.Erros.First());
     }
+
+    public async Task<List<ClienteDto>> ObterTodosClientes()
+    {
+        var clientes = await _clienteRepository.ObterTodosClientes();
+        if (clientes == null || !clientes.Any())
+            return [];
+
+        var clientesDto = clientes.Select(c => c.ToDto()).ToList();
+        return clientesDto;
+    }
 }

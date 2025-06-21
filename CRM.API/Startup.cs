@@ -29,6 +29,16 @@ public class Startup
         Dependencias.RecuperarServicos(services);
         Dependencias.RecuperarRepositorios(services);
 
+        services.AddCors(options =>
+        {
+            options.AddPolicy("AllowAll", builder =>
+            {
+                builder.AllowAnyOrigin()
+                       .AllowAnyMethod()
+                       .AllowAnyHeader();
+            });
+        });
+
         services.AddLogging(loggingBuilder =>
         {
             loggingBuilder.AddConfiguration(Configuration.GetSection("Logging"));
@@ -41,22 +51,20 @@ public class Startup
 
     private void RegistrarContextos(IServiceCollection services, IWebHostEnvironment env)
     {
-        services
-            .AddDbContext<CrmDbContext>(options =>
-            {
-                options.UseMySql(dadosConexao,
-                    ServerVersion.Create(new Version("8.0.28"), Pomelo.EntityFrameworkCore.MySql.Infrastructure.ServerType.MySql),
-                    m =>
-                    {
-                        m.MigrationsAssembly("CRM.Infrastructure");
-                        m.CommandTimeout(50000);
-                    }
-                )
-                .LogTo(s => System.Diagnostics.Debug.WriteLine(s))
-                .EnableDetailedErrors(true)
-                .EnableSensitiveDataLogging(true);
-                options.UseLazyLoadingProxies();
-            });
+        services.AddDbContext<CrmDbContext>(options =>
+        {
+            options.UseMySql(dadosConexao,
+                ServerVersion.Create(new Version("8.0.28"), Pomelo.EntityFrameworkCore.MySql.Infrastructure.ServerType.MySql),
+                m =>
+                {
+                    m.MigrationsAssembly("CRM.Infrastructure");
+                    m.CommandTimeout(50000);
+                })
+            .LogTo(s => System.Diagnostics.Debug.WriteLine(s))
+            .EnableDetailedErrors(true)
+            .EnableSensitiveDataLogging(true);
+            options.UseLazyLoadingProxies();
+        });
     }
 
     private void AdicionarSwagger(IServiceCollection services)
@@ -82,14 +90,28 @@ public class Startup
             SupportedUICultures = supportedCultures
         });
 
+        if (env.IsDevelopment())
+        {
+            app.UseDeveloperExceptionPage();
+        }
+        else
+        {
+            app.UseHsts();
+        }
+
+        app.UseHttpsRedirection(); // (opcional, mas recomendado)
+
         app.UseSwagger();
         app.UseSwaggerUI(c =>
         {
             c.SwaggerEndpoint("/swagger/v1/swagger.json", "API do CRM v1");
-            c.RoutePrefix = "swagger"; // Agora: https://localhost:7058/swagger
+            c.RoutePrefix = "swagger"; // Agora: https://localhost:7095/swagger
         });
 
         app.UseRouting();
+
+        app.UseCors("AllowAll"); // 👈 Importante para consumir via HTTPClient de outra aplicação
+
         app.UseMiddleware<ExceptionMiddleware>();
 
         app.UseEndpoints(endpoints =>

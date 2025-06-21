@@ -53,6 +53,9 @@ public class PedidoService : IPedidoService
         if (produtosDuplicados.Any())
             throw new ServiceException("Não é permitido adicionar o mesmo produto mais de uma vez no pedido.");
 
+        if(pedido.Cliente == null)
+            throw new DomainException("Não há um cliente associado ao pedido.");
+
         if (!pedido.Cliente.CadastroCompleto())
             throw new DomainException("Cadastro incompleto. Atualize o cadastro do cliente para prosseguir com o pedido.");
 

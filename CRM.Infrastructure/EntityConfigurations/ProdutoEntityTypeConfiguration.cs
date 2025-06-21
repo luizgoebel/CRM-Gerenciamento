@@ -9,5 +9,6 @@ public class ProdutoEntityTypeConfiguration : IEntityTypeConfiguration<Produto>
     {
         builder.ToTable("produto");
         builder.HasKey(p => p.Id);
+        builder.Property(p => p.Preco).HasPrecision(6, 2);
     }
 }

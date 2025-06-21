@@ -4,6 +4,7 @@ using CRM.Infrastructure.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CRM.Infrastructure.Migrations
 {
     [DbContext(typeof(CrmDbContext))]
-    partial class CrmDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250621144326_AtualizarPrecisaoPreco")]
+    partial class AtualizarPrecisaoPreco
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -149,8 +152,8 @@ namespace CRM.Infrastructure.Migrations
                         .HasColumnType("longtext");
 
                     b.Property<decimal>("Preco")
-                        .HasPrecision(6, 2)
-                        .HasColumnType("decimal(6,2)");
+                        .HasPrecision(6, 3)
+                        .HasColumnType("decimal(6,3)");
 
                     b.HasKey("Id");
 

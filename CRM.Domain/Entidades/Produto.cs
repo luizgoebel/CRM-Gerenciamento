@@ -18,9 +18,9 @@ public class Produto : BaseModel<Produto>
         return result;
     }
 
-    public void Alterar(string nome, decimal preco)
+    public void Alterar(string? nome, decimal? preco)
     {
-        this.Nome = nome;
-        this.Preco = preco;
+        this.Nome = string.IsNullOrEmpty(nome) ? this.Nome : nome;
+        this.Preco = preco <= 0 ? this.Preco : (decimal)preco!;
     }
 }

@@ -13,12 +13,12 @@ public class Cliente : BaseModel<Cliente>
         return ValidarCadastroCompleto().IsValid;
     }
 
-    public void Alterar(string nome, string telefone, string? email, string? endereco)
+    public void Alterar(string? nome, string? telefone, string? email, string? endereco)
     {
-        this.Nome = nome;
-        this.Telefone = telefone;
-        this.Email = email ?? string.Empty;
-        this.Endereco = endereco ?? string.Empty;
+        this.Nome = string.IsNullOrEmpty(nome) ? this.Nome : nome;
+        this.Telefone = string.IsNullOrEmpty(telefone) ? this.Telefone : telefone;
+        this.Email = email;
+        this.Endereco = endereco;
 
         ValidarCadastroParcial();
     }

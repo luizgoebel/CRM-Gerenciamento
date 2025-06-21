@@ -26,6 +26,8 @@ public class Startup
             .AddNewtonsoftJson();
 
         RegistrarContextos(services, env);
+        Dependencias.RecuperarServicos(services);
+        Dependencias.RecuperarRepositorios(services);
 
         services.AddLogging(loggingBuilder =>
         {

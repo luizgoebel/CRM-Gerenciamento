@@ -1,6 +1,7 @@
 ﻿using CRM.Application.DTOs;
 using CRM.Application.Exceptions;
 using CRM.Application.Interfaces;
+using CRM.Application.Mappers;
 using CRM.Core.Interfaces;
 using CRM.Domain.Entidades;
 
@@ -21,19 +22,8 @@ public class PedidoService : IPedidoService
     {
         Cliente cliente = await this._clienteRepository.ObterPorId(pedidoDto.ClienteId) ??
             throw new ServiceException($"Cliente não encontrado.");
-        
-        Pedido pedido = new()
-        {
-            ClienteId = pedidoDto.ClienteId,
-            Itens = pedidoDto.Itens.Select(i => new PedidoItem
-            {
-                ProdutoId = i.ProdutoId,
-                Quantidade = i.Quantidade,
-                Subtotal = i.PrecoUnitario * i.Quantidade
-            }).ToList(),
-            // Total do pedido = soma dos preços dos itens vezes q quantidade
-            ValorTotal = pedidoDto.Itens.Sum(i => i.PrecoUnitario * i.Quantidade)
-        };
+
+        Pedido pedido = pedidoDto.ToModel();
 
         ValidarPedido(pedido);
         this._pedidoRepository.CriarPedido(pedido);
@@ -44,17 +34,9 @@ public class PedidoService : IPedidoService
         Pedido pedido = await this._pedidoRepository.ObterPorId(id)
         ?? throw new ServiceException($"Pedido não encontrado.");
 
-        return new PedidoDto
-        {
-            Id = pedido.Id,
-            ClienteId = pedido.ClienteId,
-            Itens = pedido.Itens.Select(i => new PedidoItemDto
-            {
-                ProdutoId = i.ProdutoId,
-                Quantidade = i.Quantidade,
-                PrecoUnitario = i.Subtotal / (i.Quantidade == 0 ? 1 : i.Quantidade)
-            }).ToList()
-        };
+        PedidoDto pedidoDto = pedido.ToDto();
+
+        return pedidoDto;
     }
 
     private void ValidarPedido(Pedido pedido)

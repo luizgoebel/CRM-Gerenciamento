@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CRM.API.Controllers;
 
-[Route("api/[controller]")]
 [ApiController]
+[Route("api/[controller]")]
 public class ProdutoController : ControllerBase
 {
     private readonly IProdutoService _produtoService;
@@ -30,7 +30,7 @@ public class ProdutoController : ControllerBase
     }
 
     [HttpGet("[action]")]
-    public async Task<IActionResult> ObterPorId(int id)
+    public IActionResult ObterPorId(int id)
     {
         ProdutoDto produto = this._produtoService.ObterPorId(id);
         return Ok(produto);

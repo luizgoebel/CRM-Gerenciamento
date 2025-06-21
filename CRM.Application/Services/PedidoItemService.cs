@@ -1,6 +1,7 @@
 ﻿using CRM.Application.DTOs;
 using CRM.Application.Exceptions;
 using CRM.Application.Interfaces;
+using CRM.Application.Mappers;
 using CRM.Core.Interfaces;
 using CRM.Domain.Entidades;
 
@@ -20,12 +21,7 @@ public class PedidoItemService : IPedidoItemService
         if (dto == null)
             throw new ServiceException("Item inválido.");
 
-        PedidoItem item = new PedidoItem
-        {
-            ProdutoId = dto.ProdutoId,
-            Quantidade = dto.Quantidade,
-            Subtotal = dto.Quantidade * dto.PrecoUnitario
-        };
+        PedidoItem item = dto.ToModel();
 
         Validar(item);
 
@@ -37,9 +33,7 @@ public class PedidoItemService : IPedidoItemService
         PedidoItem item = this._pedidoItemRepository.ObterPorId(dto.Id).GetAwaiter().GetResult()
             ?? throw new ServiceException("Item não encontrado.");
 
-        var subtotal = dto.Quantidade * dto.PrecoUnitario;
-
-        item.Alterar(dto.PedidoId, dto.ProdutoId, dto.Quantidade, subtotal);
+        item.Alterar(dto.PedidoId, dto.ProdutoId, dto.Quantidade, dto.PrecoUnitario);
 
         this._pedidoItemRepository.Atualizar(item);
     }
@@ -49,14 +43,9 @@ public class PedidoItemService : IPedidoItemService
         PedidoItem item = await _pedidoItemRepository.ObterPorId(id)
             ?? throw new ServiceException("Item não encontrado.");
 
-        return new PedidoItemDto
-        {
-            Id = item.Id,
-            PedidoId = item.PedidoId,
-            ProdutoId = item.ProdutoId,
-            Quantidade = item.Quantidade,
-            PrecoUnitario = item.Subtotal / item.Quantidade
-        };
+        PedidoItemDto pedidoItemDto = item.ToDto();
+
+        return pedidoItemDto;
     }
 
     public void Remover(int id)
@@ -72,14 +61,7 @@ public class PedidoItemService : IPedidoItemService
         var itens = await _pedidoItemRepository.ListarPorPedido(pedidoId)
             ?? throw new ServiceException("Nenhum item encontrado."); ;
 
-        return itens.Select(item => new PedidoItemDto
-        {
-            Id = item.Id,
-            PedidoId = item.PedidoId,
-            ProdutoId = item.ProdutoId,
-            Quantidade = item.Quantidade,
-            PrecoUnitario = item.Subtotal / item.Quantidade
-        });
+        return itens.Select(item => item.ToDto());
     }
 
     private void Validar(PedidoItem pedidoItem)

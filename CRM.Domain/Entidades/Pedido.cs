@@ -6,5 +6,7 @@ public class Pedido : BaseModel<Pedido>
     public int ClienteId { get; set; }
     public virtual Cliente? Cliente { get; set; }
     public virtual List<PedidoItem> Itens { get; set; } = new();
-    public decimal ValorTotal { get; set; }
+
+    // ValorTotal is now calculated from Itens
+    public decimal ValorTotal => Itens?.Sum(i => i.Subtotal) ?? 0m;
 }

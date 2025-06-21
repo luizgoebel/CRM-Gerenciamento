@@ -1,6 +1,7 @@
 ﻿using CRM.Application.DTOs;
 using CRM.Application.Exceptions;
 using CRM.Application.Interfaces;
+using CRM.Application.Mappers;
 using CRM.Core.Interfaces;
 using CRM.Domain.Entidades;
 
@@ -26,13 +27,18 @@ public class ProdutoService : IProdutoService
     {
         IEnumerable<Produto> produtos = [];
         produtos = await this._produtoRepository.ListarTodos();
-        return produtos.Select(p => new ProdutoDto { Nome = p.Nome, Preco = p.Preco });
+
+        if (produtos == null || !produtos.Any())
+            throw new ServiceException("Nenhum produto encontrado.");
+
+        return produtos.Select(p => p.ToDto());
     }
 
     public ProdutoDto ObterPorId(int id)
     {
         Produto produto = RecuperarProduto(id);
-        return new ProdutoDto { Id = produto.Id, Nome = produto.Nome, Preco = produto.Preco };
+        ProdutoDto produtoDto = produto.ToDto();
+        return produtoDto;
     }
 
     public void Atualizar(ProdutoDto produtoDto)

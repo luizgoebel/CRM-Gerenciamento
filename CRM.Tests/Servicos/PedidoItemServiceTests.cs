@@ -5,8 +5,6 @@ using CRM.Core.Interfaces;
 using CRM.Domain.Entidades;
 using Moq;
 using NUnit.Framework;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace CRM.Tests.Servicos
 {
@@ -44,8 +42,7 @@ namespace CRM.Tests.Servicos
 
             _pedidoItemRepositoryMock.Verify(r => r.Adicionar(It.Is<PedidoItem>(p =>
                 p.ProdutoId == dto.ProdutoId &&
-                p.Quantidade == dto.Quantidade &&
-                p.Subtotal == dto.Quantidade * dto.PrecoUnitario
+                p.Quantidade == dto.Quantidade
             )), Times.Once);
         }
 
@@ -59,7 +56,8 @@ namespace CRM.Tests.Servicos
         [Test]
         public async Task ObterPorId_QuandoItemExiste_DeveRetornarDto()
         {
-            var item = new PedidoItem { Id = 1, PedidoId = 2, ProdutoId = 3, Quantidade = 2, Subtotal = 40 };
+            var item = new PedidoItem(pedidoId: 1, produtoId: 2, quantidade: 3, precoUnitario: 2);
+            
             _pedidoItemRepositoryMock.Setup(r => r.ObterPorId(1)).ReturnsAsync(item);
 
             var resultado = await _pedidoItemService.ObterPorId(1);
@@ -67,7 +65,7 @@ namespace CRM.Tests.Servicos
             Assert.AreEqual(item.Id, resultado.Id);
             Assert.AreEqual(item.ProdutoId, resultado.ProdutoId);
             Assert.AreEqual(item.Quantidade, resultado.Quantidade);
-            Assert.AreEqual(20, resultado.PrecoUnitario);
+            Assert.AreEqual(item.PrecoUnitario, resultado.PrecoUnitario);
         }
 
         [Test]
@@ -82,11 +80,11 @@ namespace CRM.Tests.Servicos
         public async Task Atualizar_DeveAlterarItem()
         {
             var dto = new PedidoItemDto { Id = 1, PedidoId = 1, ProdutoId = 2, Quantidade = 5, PrecoUnitario = 10 };
-            var itemExistente = new PedidoItem { Id = 1, PedidoId = 1, ProdutoId = 1, Quantidade = 2, Subtotal = 20 };
+            var itemExistente = new PedidoItem { Id = 1, PedidoId = 1, ProdutoId = 1, Quantidade = 2 };
 
             _pedidoItemRepositoryMock.Setup(r => r.ObterPorId(dto.Id)).ReturnsAsync(itemExistente);
 
-             _pedidoItemService.Atualizar(dto);
+            _pedidoItemService.Atualizar(dto);
 
             _pedidoItemRepositoryMock.Verify(r => r.Atualizar(It.Is<PedidoItem>(p =>
                 p.Id == dto.Id &&
@@ -112,7 +110,7 @@ namespace CRM.Tests.Servicos
             var item = new PedidoItem { Id = 1 };
             _pedidoItemRepositoryMock.Setup(r => r.ObterPorId(1)).ReturnsAsync(item);
 
-             _pedidoItemService.Remover(1);
+            _pedidoItemService.Remover(1);
 
             _pedidoItemRepositoryMock.Verify(r => r.Remover(item), Times.Once);
         }
@@ -130,8 +128,8 @@ namespace CRM.Tests.Servicos
         {
             var itens = new List<PedidoItem>
             {
-                new PedidoItem { Id = 1, PedidoId = 1, ProdutoId = 1, Quantidade = 2, Subtotal = 20 },
-                new PedidoItem { Id = 2, PedidoId = 1, ProdutoId = 2, Quantidade = 1, Subtotal = 10 }
+                new PedidoItem { Id = 1, PedidoId = 1, ProdutoId = 1, Quantidade = 2 },
+                new PedidoItem { Id = 2, PedidoId = 1, ProdutoId = 2, Quantidade = 1 }
             };
 
             _pedidoItemRepositoryMock.Setup(r => r.ListarPorPedido(1)).ReturnsAsync(itens);

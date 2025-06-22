@@ -16,15 +16,12 @@ public class ProdutoService : IProdutoService
         this._produtoRepository = produtoRepository;
     }
 
-    public async Task<IEnumerable<ProdutoDto>> ListarTodos()
+    public async Task<List<ProdutoDto>> ListarTodos()
     {
         IEnumerable<Produto> produtos = [];
         produtos = await this._produtoRepository.ListarTodos();
 
-        if (produtos == null || !produtos.Any())
-            throw new ServiceException("Nenhum produto encontrado.");
-
-        return produtos.Select(p => p.ToDto());
+        return produtos.Select(p => p.ToDto()).ToList();
     }
 
     public ProdutoDto ObterPorId(int id)

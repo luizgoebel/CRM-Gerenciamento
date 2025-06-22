@@ -4,7 +4,7 @@ namespace CRM.Application.Interfaces;
 
 public interface IProdutoService
 {
-    Task<IEnumerable<ProdutoDto>> ListarTodos();
+    Task<List<ProdutoDto>> ListarTodos();
     ProdutoDto ObterPorId(int id);
     void Salvar(ProdutoDto produtoDto);
     void Remover(int id);

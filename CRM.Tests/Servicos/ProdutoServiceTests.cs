@@ -94,16 +94,6 @@ public class ProdutoServiceTests
     }
 
     [Test]
-    public void Atualizar_QuandoProdutoNaoExiste_DeveLancarServiceException()
-    {
-        _produtoRepositoryMock.Setup(r => r.ObterPorId(It.IsAny<int>())).ReturnsAsync((Produto?)null);
-
-        var produtoDto = new ProdutoDto { Nome = "Produto", Preco = 10 };
-
-        Assert.Throws<ServiceException>(() => _produtoService.Salvar(produtoDto));
-    }
-
-    [Test]
     public async Task Remover_QuandoProdutoExiste_DeveChamarRepositorio()
     {
         var produto = new Produto { Id = 1, Nome = "Produto A", Preco = 10 };

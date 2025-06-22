@@ -18,7 +18,7 @@ public class ProdutoController : ControllerBase
     [HttpGet("[action]")]
     public async Task<IActionResult> ObterTodosProdutos()
     {
-        IEnumerable<ProdutoDto> produtos = await this._produtoService.ListarTodos();
+        List<ProdutoDto> produtos = await this._produtoService.ListarTodos();
         return Ok(produtos);
     }
 

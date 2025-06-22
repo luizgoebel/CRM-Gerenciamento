@@ -29,16 +29,9 @@ public class ClienteController : ControllerBase
     }
 
     [HttpPost("[action]")]
-    public IActionResult Adicionar([FromBody] ClienteDto clienteDto)
+    public IActionResult SalvarCliente([FromBody] ClienteDto clienteDto)
     {
-        this._clienteService.Adicionar(clienteDto);
-        return Ok();
-    }
-
-    [HttpPost("[action]")]
-    public IActionResult Atualizar([FromBody] ClienteDto clienteDto)
-    {
-        this._clienteService.Atualizar(clienteDto);
+        this._clienteService.Salvar(clienteDto);
         return Ok();
     }
 }

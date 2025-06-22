@@ -15,17 +15,6 @@ public class ClienteService : IClienteService
         _clienteRepository = clienteRepository;
     }
 
-    public void Adicionar(ClienteDto clienteDto)
-    {
-        if (clienteDto == null)
-            throw new ServiceException("Cliente inválido.");
-
-        Cliente cliente = clienteDto.ToModel();
-        ValidarCadastroParcial(cliente);
-
-        _clienteRepository.Adicionar(cliente);
-    }
-
     public async Task<ClienteDto> ObterPorId(int id)
     {
         Cliente cliente = await _clienteRepository.ObterPorId(id)
@@ -35,17 +24,22 @@ public class ClienteService : IClienteService
         return clienteDto;
     }
 
-    public void Atualizar(ClienteDto clienteDto)
+    public void Salvar(ClienteDto clienteDto)
     {
         if (clienteDto == null)
-            throw new NullReferenceException();
+            throw new ServiceException("Ocorreu um erro.");
+        ValidarCadastroParcial(clienteDto.ToModel());
 
-        Cliente cliente = this._clienteRepository.ObterPorId(clienteDto.Id).GetAwaiter().GetResult()
-              ?? throw new ServiceException("Cliente não encontrado.");
+        if (clienteDto.Id > 0)
+        {
+            Cliente cliente = this._clienteRepository.ObterPorId(clienteDto.Id ?? 0).GetAwaiter().GetResult()
+                  ?? throw new ServiceException("Cliente não encontrado.");
+            cliente.Alterar(clienteDto.Nome, clienteDto.Telefone, clienteDto.Email, clienteDto.Endereco);
+            this._clienteRepository.Atualizar(cliente);
+            return;
+        }
 
-        cliente.Alterar(clienteDto.Nome, clienteDto.Telefone, clienteDto.Email, clienteDto.Endereco);
-
-        this._clienteRepository.Atualizar(cliente);
+        _clienteRepository.Adicionar(clienteDto.ToModel());
     }
 
     private void ValidarCadastroParcial(Cliente cliente)

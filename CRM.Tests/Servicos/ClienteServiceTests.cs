@@ -38,7 +38,7 @@ public class ClienteServiceTests
             .ReturnsAsync(cliente);
 
         // Act
-        _clienteService.Adicionar(clienteDto);
+        _clienteService.Salvar(clienteDto);
         var clienteRecuperado = _clienteRepositoryMock.Object.ObterPorId(cliente.Id).Result;
 
         // Assert
@@ -49,13 +49,13 @@ public class ClienteServiceTests
     [Test]
     public void Adicionar_QuandoDtoForNulo_DeveLancarServiceException()
     {
-        Assert.Throws<ServiceException>(() => _clienteService.Adicionar(null));
+        Assert.Throws<ServiceException>(() => _clienteService.Salvar(null));
     }
 
     [Test]
     public void Adicionar_QuandoNomeForVazio_DeveLancarDomainException()
     {
-        Assert.Throws<DomainException>(() => _clienteService.Adicionar(new()
+        Assert.Throws<DomainException>(() => _clienteService.Salvar(new()
         {
             Id = 1,
             Nome = string.Empty,
@@ -91,32 +91,30 @@ public class ClienteServiceTests
     [Test]
     public async Task Atualizar_DeveExecutarSemExcecao_QuandoClienteExiste()
     {
-        var clienteExistente = new Cliente { Id = 1, Nome = "Carlos", Email = "carlos@email.com" };
-        var clienteDto = new ClienteDto { Id = 1, Nome = "Carlos Atualizado", Email = "carlos@email.com" };
+        var clienteExistente = new Cliente { Id = 1, Nome = "Carlos", Email = "carlos@email.com", Telefone = "54654" };
+        var clienteDto = new ClienteDto { Nome = "Carlos Atualizado", Email = "carlos@email.com", Telefone = "5516115" };
 
         _clienteRepositoryMock.Setup(r => r.ObterPorId(clienteExistente.Id))
             .ReturnsAsync(clienteExistente);
 
         _clienteRepositoryMock.Setup(r => r.Atualizar(clienteExistente));
 
-        Assert.DoesNotThrow(() => _clienteService.Atualizar(clienteDto));
+        Assert.DoesNotThrow(() => _clienteService.Salvar(clienteDto));
     }
-
 
     [Test]
     public void Atualizar_QuandoClienteNaoEncontrado_DeveLancarServiceException()
     {
         // Arrange
-        var clienteDto = new ClienteDto { Id = 999, Nome = "Inexistente", Email = "inexistente@email.com" };
+        var clienteDto = new ClienteDto { Id = 999, Nome = "Inexistente", Email = "inexistente@email.com", Telefone = "545456" };
         _clienteRepositoryMock
-            .Setup(r => r.ObterPorId(clienteDto.Id))
+            .Setup(r => r.ObterPorId(clienteDto.Id??0))
             .ReturnsAsync((Cliente?)null);
 
         // Act & Assert
         var ex = Assert.Throws<ServiceException>(() =>
-            _clienteService.Atualizar(clienteDto));
+            _clienteService.Salvar(clienteDto));
 
         Assert.That(ex.Message, Is.EqualTo("Cliente não encontrado."));
     }
-
 }

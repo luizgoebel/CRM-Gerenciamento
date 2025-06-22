@@ -16,7 +16,7 @@ public static class ClienteMapper
 
     public static Cliente ToModel(this ClienteDto dto) => new()
     {
-        Id = dto.Id,
+        Id = dto.Id ?? 0,
         Nome = dto.Nome,
         Telefone = dto.Telefone,
         Email = dto.Email,

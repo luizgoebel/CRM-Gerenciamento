@@ -16,13 +16,6 @@ public class ProdutoService : IProdutoService
         this._produtoRepository = produtoRepository;
     }
 
-    public void Adicionar(ProdutoDto produtoDto)
-    {
-        Produto produto = new() { Nome = produtoDto.Nome, Preco = produtoDto.Preco };
-        Validar(produto);
-        this._produtoRepository.Adicionar(produto);
-    }
-
     public async Task<IEnumerable<ProdutoDto>> ListarTodos()
     {
         IEnumerable<Produto> produtos = [];
@@ -41,12 +34,22 @@ public class ProdutoService : IProdutoService
         return produtoDto;
     }
 
-    public void Atualizar(ProdutoDto produtoDto)
+    public void Salvar(ProdutoDto produtoDto)
     {
-        Produto produto = RecuperarProduto(produtoDto.Id);
-        produto.Alterar(produtoDto.Nome, produtoDto.Preco);
-        Validar(produto);
-        this._produtoRepository.Atualizar(produto);
+        if (produtoDto == null)
+            throw new NullReferenceException("O DTO do produto não pode ser nulo.");
+
+        Validar(produtoDto.ToModel());
+
+        if (produtoDto.Id > 0)
+        {
+            Produto produto = RecuperarProduto(produtoDto.Id ?? 0);
+            produto.Alterar(produtoDto.Nome, produtoDto.Preco);
+            this._produtoRepository.Atualizar(produto);
+            return;
+        }
+
+        this._produtoRepository.Adicionar(produtoDto.ToModel());
     }
 
     public void Remover(int id)

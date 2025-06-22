@@ -15,13 +15,10 @@ public static class ProdutoMapper
         };
     }
 
-    public static Produto ToModel(this ProdutoDto dto)
+    public static Produto ToModel(this ProdutoDto dto) => new()
     {
-        return new Produto
-        {
-            Id = dto.Id,
-            Nome = dto.Nome,
-            Preco = dto.Preco
-        };
-    }
+        Id = dto.Id ?? 0,
+        Nome = dto.Nome?? string.Empty,
+        Preco = dto.Preco ?? 0
+    };
 }

@@ -30,7 +30,7 @@ public class ClienteService : IClienteService
             throw new ServiceException("Ocorreu um erro.");
         ValidarCadastroParcial(clienteDto.ToModel());
 
-        if (clienteDto.Id == null || clienteDto.Id > 0)
+        if (clienteDto.Id > 0)
         {
             Cliente cliente = this._clienteRepository.ObterPorId(clienteDto.Id ?? 0).GetAwaiter().GetResult()
                   ?? throw new ServiceException("Cliente não encontrado.");

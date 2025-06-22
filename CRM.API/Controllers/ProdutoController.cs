@@ -15,15 +15,8 @@ public class ProdutoController : ControllerBase
         this._produtoService = produtoService;
     }
 
-    [HttpPost("[action]")]
-    public IActionResult Adicionar([FromBody] ProdutoDto produtoDto)
-    {
-        this._produtoService.Adicionar(produtoDto);
-        return Ok();
-    }
-
     [HttpGet("[action]")]
-    public async Task<IActionResult> ListarTodos()
+    public async Task<IActionResult> ObterTodosProdutos()
     {
         IEnumerable<ProdutoDto> produtos = await this._produtoService.ListarTodos();
         return Ok(produtos);
@@ -37,9 +30,9 @@ public class ProdutoController : ControllerBase
     }
 
     [HttpPost("[action]")]
-    public IActionResult Atualizar([FromBody] ProdutoDto produtoDto)
+    public IActionResult Salvar([FromBody] ProdutoDto produtoDto)
     {
-        this._produtoService.Atualizar(produtoDto);
+        this._produtoService.Salvar(produtoDto);
         return Ok();
     }
 

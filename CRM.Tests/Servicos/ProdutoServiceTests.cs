@@ -31,7 +31,7 @@ public class ProdutoServiceTests
             .Setup(r => r.Adicionar(It.IsAny<Produto>()))
             .Verifiable();
 
-         _produtoService.Adicionar(produtoDto);
+         _produtoService.Salvar(produtoDto);
 
         _produtoRepositoryMock.Verify(r => r.Adicionar(It.Is<Produto>(p =>
             p.Nome == produtoDto.Nome && p.Preco == produtoDto.Preco)), Times.Once);
@@ -87,7 +87,7 @@ public class ProdutoServiceTests
         _produtoRepositoryMock.Setup(r => r.Atualizar(It.IsAny<Produto>()))
             .Verifiable();
 
-        _produtoService.Atualizar(produtoDto);
+        _produtoService.Salvar(produtoDto);
 
         _produtoRepositoryMock.Verify(r => r.Atualizar(It.Is<Produto>(p =>
             p.Id == 1 && p.Nome == produtoDto.Nome && p.Preco == produtoDto.Preco)), Times.Once);
@@ -100,7 +100,7 @@ public class ProdutoServiceTests
 
         var produtoDto = new ProdutoDto { Nome = "Produto", Preco = 10 };
 
-        Assert.Throws<ServiceException>(() => _produtoService.Atualizar(produtoDto));
+        Assert.Throws<ServiceException>(() => _produtoService.Salvar(produtoDto));
     }
 
     [Test]

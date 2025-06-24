@@ -59,4 +59,26 @@ public class ClienteService : IClienteService
         var clientesDto = clientes.Select(c => c.ToDto()).ToList();
         return clientesDto;
     }
+
+    public async Task<object> ObterClientesPaginados(int page, int pageSize)
+    {
+        var query = await _clienteRepository.ObterQueryClientes(); // já ordenada e filtrável
+
+        var total = query.Count();
+        var clientes = query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        var clientesDto = clientes.Select(c => c.ToDto()).ToList();
+
+        return new
+        {
+            Clientes = clientesDto,
+            Total = total,
+            PaginaAtual = page,
+            TotalPaginas = (int)Math.Ceiling((double)total / pageSize)
+        };
+    }
+
 }

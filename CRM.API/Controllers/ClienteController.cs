@@ -21,6 +21,15 @@ public class ClienteController : ControllerBase
         List<ClienteDto> clientes = await _clienteService.ObterTodosClientes();
         return clientes;
     }
+
+    [HttpGet("[action]")]
+    public async Task<IActionResult> ObterClientesPaginados(int page = 1, int pageSize = 10)
+    {
+        var resultado = await _clienteService.ObterClientesPaginados(page, pageSize);
+        return Ok(resultado);
+    }
+
+
     [HttpGet("[action]")]
     public async Task<IActionResult> ObterPorId(int id)
     {

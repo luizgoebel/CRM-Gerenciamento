@@ -3,6 +3,7 @@ using CRM.Domain.Entidades;
 using CRM.Infrastructure.DbContext;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 public class ClienteRepository : IClienteRepository
@@ -35,4 +36,10 @@ public class ClienteRepository : IClienteRepository
     {
         return await _context.Set<Cliente>().ToListAsync();
     }
+
+    public async Task<IQueryable<Cliente>> ObterQueryClientes()
+    {
+        return await Task.FromResult(_context.Set<Cliente>().OrderBy(c => c.Nome).AsQueryable());
+    }
+
 }

@@ -6,6 +6,7 @@ public interface IProdutoRepository
 {
     void Adicionar(Produto produto);
     Task<IEnumerable<Produto>> ListarTodos();
+    Task<IQueryable<Produto>> ObterQueryProdutos();
     Task<Produto?> ObterPorId(int id);
     void Atualizar(Produto produto);
     void Remover(Produto produto);

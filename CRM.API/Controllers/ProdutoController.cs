@@ -1,5 +1,6 @@
 ﻿using CRM.Application.DTOs;
 using CRM.Application.Interfaces;
+using CRM.Application.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CRM.API.Controllers;
@@ -20,6 +21,13 @@ public class ProdutoController : ControllerBase
     {
         List<ProdutoDto> produtos = await this._produtoService.ListarTodos();
         return Ok(produtos);
+    }
+
+    [HttpGet("[action]")]
+    public async Task<IActionResult> ObterProdutosPaginados(int page = 1, int pageSize = 25)
+    {
+        var resultado = await _produtoService.ObterProdutosPaginados(page, pageSize);
+        return Ok(resultado);
     }
 
     [HttpGet("[action]")]

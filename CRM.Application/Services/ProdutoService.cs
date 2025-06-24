@@ -24,6 +24,28 @@ public class ProdutoService : IProdutoService
         return produtos.Select(p => p.ToDto()).ToList();
     }
 
+    public async Task<object> ObterProdutosPaginados(int page, int pageSize)
+    {
+        var query = await _produtoRepository.ObterQueryProdutos(); // Retorna IQueryable<Produto>
+
+        var total = query.Count();
+        var produtos = query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        var produtosDto = produtos.Select(p => p.ToDto()).ToList();
+
+        return new
+        {
+            Itens = produtosDto,
+            Total = total,
+            PaginaAtual = page,
+            TotalPaginas = (int)Math.Ceiling((double)total / pageSize)
+        };
+    }
+
+
     public ProdutoDto ObterPorId(int id)
     {
         Produto produto = RecuperarProduto(id);

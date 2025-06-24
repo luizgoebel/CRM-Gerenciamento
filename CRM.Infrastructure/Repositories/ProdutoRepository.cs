@@ -3,6 +3,7 @@ using CRM.Domain.Entidades;
 using CRM.Infrastructure.DbContext;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace CRM.Infrastructure.Repositories;
@@ -42,5 +43,10 @@ public class ProdutoRepository : IProdutoRepository
     public async Task<Produto?> ObterPorId(int id)
     {
         return await this._context.Set<Produto>().FindAsync(id);
+    }
+
+    public async Task<IQueryable<Produto>> ObterQueryProdutos()
+    {
+        return await Task.FromResult(_context.Set<Produto>().OrderBy(c => c.Nome).AsQueryable());
     }
 }

@@ -74,7 +74,7 @@ public class ClienteService : IClienteService
 
         return new
         {
-            Clientes = clientesDto,
+            Itens = clientesDto,
             Total = total,
             PaginaAtual = page,
             TotalPaginas = (int)Math.Ceiling((double)total / pageSize)

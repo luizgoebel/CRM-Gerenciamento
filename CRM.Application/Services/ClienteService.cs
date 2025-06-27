@@ -60,19 +60,23 @@ public class ClienteService : IClienteService
         return clientesDto;
     }
 
-    public async Task<object> ObterClientesPaginados(int page, int pageSize)
+    public async Task<PaginacaoResultado<ClienteDto>> ObterClientesPaginados(string filtro, int page, int pageSize)
     {
-        var query = await _clienteRepository.ObterQueryClientes(); // já ordenada e filtrável
+        var query = await _clienteRepository.ObterQueryClientes(); // IQueryable
 
+        // Aplica filtro por Nome
+        if (!string.IsNullOrWhiteSpace(filtro))
+        {
+            filtro = filtro.ToLower();
+            query = query.Where(c => c.Nome.ToLower().Contains(filtro));
+        }
         var total = query.Count();
         var clientes = query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToList();
-
         var clientesDto = clientes.Select(c => c.ToDto()).ToList();
-
-        return new
+        return new PaginacaoResultado<ClienteDto>
         {
             Itens = clientesDto,
             Total = total,
@@ -80,5 +84,4 @@ public class ClienteService : IClienteService
             TotalPaginas = (int)Math.Ceiling((double)total / pageSize)
         };
     }
-
 }

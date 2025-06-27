@@ -24,19 +24,24 @@ public class ProdutoService : IProdutoService
         return produtos.Select(p => p.ToDto()).ToList();
     }
 
-    public async Task<object> ObterProdutosPaginados(int page, int pageSize)
+    public async Task<PaginacaoResultado<ProdutoDto>> ObterProdutosPaginados(string filtro, int page, int pageSize)
     {
         var query = await _produtoRepository.ObterQueryProdutos(); // Retorna IQueryable<Produto>
 
+        // Aplica filtro por Nome
+        if (!string.IsNullOrWhiteSpace(filtro))
+        {
+            filtro = filtro.ToLower();
+            query = query.Where(c => c.Nome.ToLower().Contains(filtro));
+        }
         var total = query.Count();
         var produtos = query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToList();
-
         var produtosDto = produtos.Select(p => p.ToDto()).ToList();
 
-        return new
+        return new PaginacaoResultado<ProdutoDto>
         {
             Itens = produtosDto,
             Total = total,

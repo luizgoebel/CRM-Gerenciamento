@@ -24,9 +24,9 @@ public class ProdutoController : ControllerBase
     }
 
     [HttpGet("[action]")]
-    public async Task<IActionResult> ObterProdutosPaginados(int page = 1, int pageSize = 25)
+    public async Task<IActionResult> ObterProdutosPaginados(string filtro = "", int page = 1, int pageSize = 25)
     {
-        var resultado = await _produtoService.ObterProdutosPaginados(page, pageSize);
+        PaginacaoResultado<ProdutoDto> resultado = await _produtoService.ObterProdutosPaginados(filtro, page, pageSize);
         return Ok(resultado);
     }
 

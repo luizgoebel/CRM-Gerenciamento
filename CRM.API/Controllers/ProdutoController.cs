@@ -1,6 +1,5 @@
 ﻿using CRM.Application.DTOs;
 using CRM.Application.Interfaces;
-using CRM.Application.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CRM.API.Controllers;
@@ -24,9 +23,9 @@ public class ProdutoController : ControllerBase
     }
 
     [HttpGet("[action]")]
-    public async Task<IActionResult> ObterProdutosPaginados(string filtro = "", int page = 1, int pageSize = 25)
+    public async Task<IActionResult> ObterProdutosPaginados(string filtro, int page = 1, int pageSize = 25)
     {
-        PaginacaoResultado<ProdutoDto> resultado = await _produtoService.ObterProdutosPaginados(filtro, page, pageSize);
+        PaginacaoResultado<ProdutoDto> resultado = await this._produtoService.ObterProdutosPaginados(filtro, page, pageSize);
         return Ok(resultado);
     }
 

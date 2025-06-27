@@ -10,14 +10,15 @@ namespace CRM.Application.Services;
 public class ClienteService : IClienteService
 {
     private readonly IClienteRepository _clienteRepository;
+
     public ClienteService(IClienteRepository clienteRepository)
     {
-        _clienteRepository = clienteRepository;
+        this._clienteRepository = clienteRepository;
     }
 
     public async Task<ClienteDto> ObterPorId(int id)
     {
-        Cliente cliente = await _clienteRepository.ObterPorId(id)
+        Cliente cliente = await this._clienteRepository.ObterPorId(id)
             ?? throw new ServiceException("Cliente não encontrado.");
         ClienteDto clienteDto = cliente.ToDto();
 
@@ -36,6 +37,7 @@ public class ClienteService : IClienteService
                   ?? throw new ServiceException("Cliente não encontrado.");
             cliente.Alterar(clienteDto.Nome, clienteDto.Telefone, clienteDto.Email, clienteDto.Endereco);
             this._clienteRepository.Atualizar(cliente);
+
             return;
         }
 
@@ -52,30 +54,35 @@ public class ClienteService : IClienteService
 
     public async Task<List<ClienteDto>> ObterTodosClientes()
     {
-        var clientes = await _clienteRepository.ObterTodosClientes();
+        var clientes = await this._clienteRepository.ObterTodosClientes();
         if (clientes == null || !clientes.Any())
             return [];
 
         var clientesDto = clientes.Select(c => c.ToDto()).ToList();
+
         return clientesDto;
     }
 
     public async Task<PaginacaoResultado<ClienteDto>> ObterClientesPaginados(string filtro, int page, int pageSize)
     {
-        var query = await _clienteRepository.ObterQueryClientes(); // IQueryable
+        IQueryable<Cliente> query = await this._clienteRepository.ObterQueryClientes();
 
-        // Aplica filtro por Nome
         if (!string.IsNullOrWhiteSpace(filtro))
         {
             filtro = filtro.ToLower();
             query = query.Where(c => c.Nome.ToLower().Contains(filtro));
         }
-        var total = query.Count();
-        var clientes = query
+
+        if (!query.Any())
+            return new PaginacaoResultado<ClienteDto>();
+
+        int total = query.Count();
+        List<Cliente> clientes = [.. query
             .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToList();
-        var clientesDto = clientes.Select(c => c.ToDto()).ToList();
+            .Take(pageSize)];
+
+        List<ClienteDto> clientesDto = [.. clientes.Select(c => c.ToDto())];
+
         return new PaginacaoResultado<ClienteDto>
         {
             Itens = clientesDto,

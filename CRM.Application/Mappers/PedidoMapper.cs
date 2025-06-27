@@ -23,7 +23,6 @@ public static class PedidoMapper
             Id = dto.Id,
             ClienteId = dto.ClienteId,
             Itens = dto.Itens.Select(i => i.ToModel()).ToList()
-            // ValorTotal is now calculated in the model, do not set here
         };
     }
 }

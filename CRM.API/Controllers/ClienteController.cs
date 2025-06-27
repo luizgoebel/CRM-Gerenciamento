@@ -12,29 +12,28 @@ public class ClienteController : ControllerBase
 
     public ClienteController(IClienteService clienteService)
     {
-        _clienteService = clienteService;
+        this._clienteService = clienteService;
     }
 
     [HttpGet("[action]")]
     public async Task<List<ClienteDto>> ObterTodosClientes()
     {
-        List<ClienteDto> clientes = await _clienteService.ObterTodosClientes();
+        List<ClienteDto> clientes = await this._clienteService.ObterTodosClientes();
         return clientes;
     }
 
     [HttpGet("[action]")]
-    public async Task<IActionResult> ObterClientesPaginados(string filtro = "", int page = 1, int pageSize = 25)
+    public async Task<IActionResult> ObterClientesPaginados(string filtro, int page = 1, int pageSize = 25)
     {
         PaginacaoResultado<ClienteDto> resultado =
-            await _clienteService.ObterClientesPaginados(filtro, page, pageSize);
+            await this._clienteService.ObterClientesPaginados(filtro, page, pageSize);
         return Ok(resultado);
     }
-
 
     [HttpGet("[action]")]
     public async Task<IActionResult> ObterPorId(int id)
     {
-        ClienteDto clienteDto = await _clienteService.ObterPorId(id);
+        ClienteDto clienteDto = await this._clienteService.ObterPorId(id);
         return Ok(clienteDto);
     }
 

@@ -40,7 +40,7 @@ public class PedidoItemService : IPedidoItemService
 
     public async Task<PedidoItemDto> ObterPorId(int id)
     {
-        PedidoItem item = await _pedidoItemRepository.ObterPorId(id)
+        PedidoItem item = await this._pedidoItemRepository.ObterPorId(id)
             ?? throw new ServiceException("Item não encontrado.");
 
         PedidoItemDto pedidoItemDto = item.ToDto();

@@ -26,20 +26,24 @@ public class ProdutoService : IProdutoService
 
     public async Task<PaginacaoResultado<ProdutoDto>> ObterProdutosPaginados(string filtro, int page, int pageSize)
     {
-        var query = await _produtoRepository.ObterQueryProdutos(); // Retorna IQueryable<Produto>
+        IQueryable<Produto> query = await _produtoRepository.ObterQueryProdutos(); 
 
-        // Aplica filtro por Nome
         if (!string.IsNullOrWhiteSpace(filtro))
         {
             filtro = filtro.ToLower();
             query = query.Where(c => c.Nome.ToLower().Contains(filtro));
         }
-        var total = query.Count();
-        var produtos = query
+
+        if (!query.Any())
+            return new PaginacaoResultado<ProdutoDto>();
+
+        int total = query.Count();
+        List<Produto> produtos = query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToList();
-        var produtosDto = produtos.Select(p => p.ToDto()).ToList();
+
+        List<ProdutoDto> produtosDto = produtos.Select(p => p.ToDto()).ToList();
 
         return new PaginacaoResultado<ProdutoDto>
         {
@@ -50,11 +54,11 @@ public class ProdutoService : IProdutoService
         };
     }
 
-
     public ProdutoDto ObterPorId(int id)
     {
         Produto produto = RecuperarProduto(id);
         ProdutoDto produtoDto = produto.ToDto();
+
         return produtoDto;
     }
 
@@ -70,6 +74,7 @@ public class ProdutoService : IProdutoService
             Produto produto = RecuperarProduto(produtoDto.Id ?? 0);
             produto.Alterar(produtoDto.Nome, produtoDto.Preco);
             this._produtoRepository.Atualizar(produto);
+
             return;
         }
 

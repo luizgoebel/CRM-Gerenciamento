@@ -23,7 +23,7 @@ public class ClienteController : ControllerBase
     }
 
     [HttpGet("[action]")]
-    public async Task<IActionResult> ObterClientesPaginados(string filtro, int page = 1, int pageSize = 25)
+    public async Task<IActionResult> ObterClientesPaginados(int page, int pageSize, string filtro = "")
     {
         PaginacaoResultado<ClienteDto> resultado =
             await this._clienteService.ObterClientesPaginados(filtro, page, pageSize);

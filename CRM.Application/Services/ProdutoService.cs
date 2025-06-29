@@ -26,13 +26,18 @@ public class ProdutoService : IProdutoService
 
     public async Task<PaginacaoResultado<ProdutoDto>> ObterProdutosPaginados(string filtro, int page, int pageSize)
     {
-        IQueryable<Produto> query = await _produtoRepository.ObterQueryProdutos(); 
+        IQueryable<Produto> query = await _produtoRepository.ObterQueryProdutos();
 
         if (!string.IsNullOrWhiteSpace(filtro))
         {
             filtro = filtro.ToLower();
             query = query.Where(c => c.Nome.ToLower().Contains(filtro));
         }
+
+        // Ordenar pela DataCriacao do mais recente para o mais antigo, depois pelo Nome
+        query = query
+            .OrderByDescending(c => c.DataCriacao)
+            .ThenBy(c => c.Nome);
 
         if (!query.Any())
             return new PaginacaoResultado<ProdutoDto>();

@@ -73,6 +73,11 @@ public class ClienteService : IClienteService
             query = query.Where(c => c.Nome.ToLower().Contains(filtro));
         }
 
+        // Ordena pela DataCriacao do mais recente para o mais antigo, depois pelo Nome
+        query = query
+            .OrderByDescending(c => c.DataCriacao)
+            .ThenBy(c => c.Nome);
+
         if (!query.Any())
             return new PaginacaoResultado<ClienteDto>();
 

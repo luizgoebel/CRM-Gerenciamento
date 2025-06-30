@@ -11,6 +11,7 @@ public static class PedidoMapper
         {
             Id = pedido.Id,
             ClienteId = pedido.ClienteId,
+            Cliente = pedido.Cliente?.Nome ?? string.Empty,
             Itens = pedido.Itens.Select(i => i.ToDto()).ToList(),
             ValorTotal = pedido.ValorTotal
         };

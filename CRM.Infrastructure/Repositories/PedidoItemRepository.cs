@@ -31,6 +31,7 @@ public class PedidoItemRepository : IPedidoItemRepository
     {
         return await this._context.Set<PedidoItem>()
             .Include(pi => pi.Produto)
+            .Include(pi => pi.Pedido)
             .Where(pi => pi.PedidoId == idPedido)
             .ToListAsync();
     }

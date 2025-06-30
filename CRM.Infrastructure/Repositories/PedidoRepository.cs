@@ -35,4 +35,10 @@ public class PedidoRepository : IPedidoRepository
 
         return await Task.FromResult(query);
     }
+
+    public void Remover(Pedido pedido)
+    {
+        this._context.Set<Pedido>().Remove(pedido);
+        this._context.SaveChanges();
+    }
 }

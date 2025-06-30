@@ -36,4 +36,10 @@ public class PedidoController : ControllerBase
         this._pedidoService.CriarPedido(pedidoDto);
         return Ok();
     }
+    [HttpPost("[action]")]
+    public IActionResult Remover(int id)
+    {
+        this._pedidoService.Remover(id);
+        return Ok();
+    }
 }

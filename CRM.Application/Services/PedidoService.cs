@@ -74,6 +74,18 @@ public class PedidoService : IPedidoService
         return pedidoDto;
     }
 
+    public void Remover(int id)
+    {
+        Pedido pedido = RecuperarPedido(id);
+        this._pedidoRepository.Remover(pedido);
+    }
+
+    private Pedido RecuperarPedido(int id)
+    {
+        return this._pedidoRepository.ObterPorId(id).GetAwaiter().GetResult()
+           ?? throw new ServiceException($"Pedido não encontrado.");
+    }
+
     private void ValidarPedido(Pedido pedido)
     {
         if (pedido.Itens == null || pedido.Itens.Count < 1)

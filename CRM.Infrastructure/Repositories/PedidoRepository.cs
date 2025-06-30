@@ -31,8 +31,6 @@ public class PedidoRepository : IPedidoRepository
     {
         var query = _context.Set<Pedido>()
             .Include(p => p.Cliente)
-            .Include(p => p.Itens)
-            .ThenInclude(i => i.Produto)
             .AsQueryable();
 
         return await Task.FromResult(query);

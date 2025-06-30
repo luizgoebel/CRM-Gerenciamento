@@ -30,6 +30,40 @@ public class PedidoService : IPedidoService
         this._pedidoRepository.CriarPedido(pedido);
     }
 
+    public async Task<PaginacaoResultado<PedidoDto>> ObterPedidosPaginados(string filtro, int page, int pageSize)
+    {
+        IQueryable<Pedido> query = await this._pedidoRepository.ObterQueryPedidos();
+
+        if (!string.IsNullOrWhiteSpace(filtro))
+        {
+            filtro = filtro.ToLower();
+            query = query.Where(c => c.Cliente!.Nome.ToLower().Contains(filtro));
+        }
+
+        // Ordena pela DataCriacao do mais recente para o mais antigo, depois pelo Nome
+        query = query
+            .OrderByDescending(c => c.DataCriacao)
+            .ThenBy(c => c.Cliente!.Nome);
+
+        if (!query.Any())
+            return new PaginacaoResultado<PedidoDto>();
+
+        int total = query.Count();
+        List<Pedido> pedidos = [.. query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)];
+
+        List<PedidoDto> pedidosDto = [.. pedidos.Select(c => c.ToDto())];
+
+        return new PaginacaoResultado<PedidoDto>
+        {
+            Itens = pedidosDto,
+            Total = total,
+            PaginaAtual = page,
+            TotalPaginas = (int)Math.Ceiling((double)total / pageSize)
+        };
+    }
+
     public async Task<PedidoDto> ObterPorId(int id)
     {
         Pedido pedido = await this._pedidoRepository.ObterPorId(id)

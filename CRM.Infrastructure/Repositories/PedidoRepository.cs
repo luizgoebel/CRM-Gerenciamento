@@ -1,6 +1,8 @@
 ﻿using CRM.Core.Interfaces;
 using CRM.Domain.Entidades;
 using CRM.Infrastructure.DbContext;
+using Microsoft.EntityFrameworkCore;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace CRM.Infrastructure.Repositories;
@@ -23,5 +25,16 @@ public class PedidoRepository : IPedidoRepository
     public async Task<Pedido?> ObterPorId(int id)
     {
         return await this._context.Set<Pedido>().FindAsync(id);
+    }
+
+    public async Task<IQueryable<Pedido>> ObterQueryPedidos()
+    {
+        var query = _context.Set<Pedido>()
+            .Include(p => p.Cliente)
+            .Include(p => p.Itens)
+            .ThenInclude(i => i.Produto)
+            .AsQueryable();
+
+        return await Task.FromResult(query);
     }
 }

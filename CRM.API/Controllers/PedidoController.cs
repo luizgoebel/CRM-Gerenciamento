@@ -22,6 +22,14 @@ public class PedidoController : ControllerBase
         return Ok(pedidoDto);
     }
 
+    [HttpGet("[action]")]
+    public async Task<IActionResult> ObterPedidosPaginados(int page, int pageSize, string filtro = "")
+    {
+        PaginacaoResultado<PedidoDto> resultado =
+            await this._pedidoService.ObterPedidosPaginados(filtro, page, pageSize);
+        return Ok(resultado);
+    }
+
     [HttpPost("[action]")]
     public IActionResult CriarPedido([FromBody] PedidoDto pedidoDto)
     {

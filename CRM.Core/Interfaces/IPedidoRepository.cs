@@ -6,4 +6,5 @@ public interface IPedidoRepository
 {
     void CriarPedido(Pedido pedido);
     Task<Pedido?> ObterPorId(int id);
+    Task<IQueryable<Pedido>> ObterQueryPedidos();
 }

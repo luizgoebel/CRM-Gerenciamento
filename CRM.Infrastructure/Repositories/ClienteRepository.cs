@@ -39,7 +39,7 @@ public class ClienteRepository : IClienteRepository
 
     public async Task<IQueryable<Cliente>> ObterQueryClientes()
     {
-        return await Task.FromResult(_context.Set<Cliente>().OrderBy(c => c.Nome).AsQueryable());
+        return await Task.FromResult(_context.Set<Cliente>().AsQueryable());
     }
 
 }

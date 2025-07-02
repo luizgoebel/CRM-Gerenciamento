@@ -11,14 +11,15 @@ public class PedidoItemEntityTypeConfiguration : IEntityTypeConfiguration<Pedido
         builder.ToTable("pedido_item");
         builder.HasKey(pi => pi.Id);
 
-        builder.HasOne<Pedido>()
+        builder.HasOne(pi => pi.Pedido)
                .WithMany(p => p.Itens)
                .HasForeignKey(pi => pi.PedidoId)
                .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasOne<Produto>()
+        builder.HasOne(pi => pi.Produto)
                .WithMany()
-               .HasForeignKey(p => p.ProdutoId)
+               .HasForeignKey(pi => pi.ProdutoId)
                .OnDelete(DeleteBehavior.Restrict);
     }
 }
+

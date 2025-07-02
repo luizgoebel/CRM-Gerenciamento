@@ -4,6 +4,7 @@ using CRM.Infrastructure.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CRM.Infrastructure.Migrations
 {
     [DbContext(typeof(CrmDbContext))]
-    partial class CrmDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250702012026_AtualizarMapeamento")]
+    partial class AtualizarMapeamento
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -22,8 +25,6 @@ namespace CRM.Infrastructure.Migrations
                 .HasAnnotation("Proxies:CheckEquality", false)
                 .HasAnnotation("Proxies:LazyLoading", true)
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
-
-           
 
             modelBuilder.Entity("CRM.Domain.Entidades.Cliente", b =>
                 {
@@ -64,7 +65,6 @@ namespace CRM.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-
                     b.Property<int>("ClienteId")
                         .HasColumnType("int");
 
@@ -91,7 +91,6 @@ namespace CRM.Infrastructure.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
-
 
                     b.Property<DateTime?>("DataCriacao")
                         .HasColumnType("datetime(6)");
@@ -125,7 +124,6 @@ namespace CRM.Infrastructure.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
-
 
                     b.Property<DateTime?>("DataCriacao")
                         .HasColumnType("datetime(6)");

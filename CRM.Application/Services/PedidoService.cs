@@ -18,17 +18,25 @@ public class PedidoService : IPedidoService
         this._clienteRepository = clienteRepository;
     }
 
-    public async void CriarPedido(PedidoDto pedidoDto)
+    public void CriarPedido(PedidoDto pedidoDto)
     {
-        Cliente cliente = await this._clienteRepository.ObterPorId(pedidoDto.ClienteId) ??
-            throw new ServiceException($"Cliente não encontrado.");
+        if (pedidoDto == null) throw new ArgumentNullException(nameof(pedidoDto));
 
-        Pedido pedido = pedidoDto.ToModel();
+        // Buscar cliente
+        var cliente = _clienteRepository.ObterPorId(pedidoDto.ClienteId).GetAwaiter().GetResult()
+            ?? throw new ServiceException("Cliente não encontrado.");
+
+        // Mapear para entidade
+        var pedido = pedidoDto.ToModel();
         pedido.AssociarCliente(cliente);
 
+        // Validação
         ValidarPedido(pedido);
-        this._pedidoRepository.CriarPedido(pedido);
+
+        // Persistência
+        _pedidoRepository.CriarPedido(pedido); // salva Pedido e seus Itens (por cascade ou explicitamente)
     }
+
 
     public async Task<PaginacaoResultado<PedidoDto>> ObterPedidosPaginados(string filtro, int page, int pageSize)
     {
@@ -106,7 +114,7 @@ public class PedidoService : IPedidoService
             throw new ServiceException("Cadastro incompleto. Atualize o cadastro do cliente para prosseguir com o pedido.");
 
         decimal somaItens = pedido.Itens.Sum(i => i.Subtotal);
-        if (pedido.ValorTotal != somaItens)
+        if (Math.Abs(pedido.ValorTotal - somaItens) > 0.01m)
             throw new ServiceException("O valor total do pedido está inconsistente com a soma dos subtotais dos itens.");
     }
 }

@@ -10,7 +10,6 @@ public static class PedidoItemMapper
         return new PedidoItemDto
         {
             Id = item.Id,
-            PedidoId = item.PedidoId,
             ProdutoId = item.ProdutoId,
             Quantidade = item.Quantidade,
             PrecoUnitario = item.PrecoUnitario
@@ -19,11 +18,13 @@ public static class PedidoItemMapper
 
     public static PedidoItem ToModel(this PedidoItemDto dto)
     {
-        return new PedidoItem(
-            dto.PedidoId,
-            dto.ProdutoId,
-            dto.Quantidade,
-            dto.PrecoUnitario
-        );
+        return new PedidoItem
+        {
+            ProdutoId = dto.ProdutoId,
+            Quantidade = dto.Quantidade,
+            PrecoUnitario = dto.PrecoUnitario
+        };
     }
 }
+
+

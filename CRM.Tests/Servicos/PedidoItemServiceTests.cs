@@ -27,10 +27,9 @@ namespace CRM.Tests.Servicos
             var dto = new PedidoItemDto
             {
                 Id = 1,
-                PedidoId = 1,
                 ProdutoId = 2,
                 Quantidade = 3,
-                PrecoUnitario = 10
+                PrecoUnitario = 10,
             };
 
             PedidoItem pedidoItemCapturado = null;
@@ -56,8 +55,8 @@ namespace CRM.Tests.Servicos
         [Test]
         public async Task ObterPorId_QuandoItemExiste_DeveRetornarDto()
         {
-            var item = new PedidoItem(pedidoId: 1, produtoId: 2, quantidade: 3, precoUnitario: 2);
-            
+            var item = new PedidoItem { Id = 1, PedidoId = 1, ProdutoId = 2, Quantidade = 3, PrecoUnitario = 2 };
+
             _pedidoItemRepositoryMock.Setup(r => r.ObterPorId(1)).ReturnsAsync(item);
 
             var resultado = await _pedidoItemService.ObterPorId(1);
@@ -79,10 +78,10 @@ namespace CRM.Tests.Servicos
         [Test]
         public async Task Atualizar_DeveAlterarItem()
         {
-            var dto = new PedidoItemDto { Id = 1, PedidoId = 1, ProdutoId = 2, Quantidade = 5, PrecoUnitario = 10 };
+            var dto = new PedidoItemDto { Id = 1, ProdutoId = 2, Quantidade = 5, PrecoUnitario = 10 };
             var itemExistente = new PedidoItem { Id = 1, PedidoId = 1, ProdutoId = 1, Quantidade = 2 };
 
-            _pedidoItemRepositoryMock.Setup(r => r.ObterPorId(dto.Id)).ReturnsAsync(itemExistente);
+            _pedidoItemRepositoryMock.Setup(r => r.ObterPorId((int)dto.Id)).ReturnsAsync(itemExistente);
 
             _pedidoItemService.Atualizar(dto);
 

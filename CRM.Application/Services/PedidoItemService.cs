@@ -30,10 +30,10 @@ public class PedidoItemService : IPedidoItemService
 
     public void Atualizar(PedidoItemDto dto)
     {
-        PedidoItem item = this._pedidoItemRepository.ObterPorId(dto.Id).GetAwaiter().GetResult()
+        PedidoItem item = this._pedidoItemRepository.ObterPorId((int)dto.Id).GetAwaiter().GetResult()
             ?? throw new ServiceException("Item não encontrado.");
 
-        item.Alterar(dto.PedidoId, dto.ProdutoId, dto.Quantidade, dto.PrecoUnitario);
+        item.Alterar((int)dto.Id, dto.ProdutoId, dto.Quantidade, dto.PrecoUnitario);
 
         this._pedidoItemRepository.Atualizar(item);
     }

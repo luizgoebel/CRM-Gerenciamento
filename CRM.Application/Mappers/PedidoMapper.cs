@@ -11,19 +11,19 @@ public static class PedidoMapper
         {
             Id = pedido.Id,
             ClienteId = pedido.ClienteId,
-            Cliente = pedido.Cliente?.Nome ?? string.Empty,
-            Itens = pedido.Itens.Select(i => i.ToDto()).ToList(),
-            ValorTotal = pedido.ValorTotal
+            Cliente = pedido.Cliente?.Nome,
+            Itens = pedido.Itens.Select(i => i.ToDto()).ToList()
         };
     }
 
     public static Pedido ToModel(this PedidoDto dto)
     {
-        return new Pedido
+        var pedido = new Pedido
         {
-            Id = dto.Id,
             ClienteId = dto.ClienteId,
             Itens = dto.Itens.Select(i => i.ToModel()).ToList()
         };
+        return pedido;
     }
 }
+

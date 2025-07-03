@@ -46,9 +46,9 @@ public class ProdutoServiceTests
             new Produto { Id = 2, Nome = "Produto B", Preco = 20 }
         };
 
-        _produtoRepositoryMock.Setup(r => r.ListarTodos()).ReturnsAsync(produtos);
+        _produtoRepositoryMock.Setup(r => r.ListarTodos()).Returns(produtos);
 
-        var resultado = await _produtoService.ListarTodos();
+        var resultado = _produtoService.ListarTodos();
 
         Assert.IsNotNull(resultado);
         Assert.That(resultado.Count(), Is.EqualTo(2));

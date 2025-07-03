@@ -5,7 +5,7 @@ namespace CRM.Core.Interfaces;
 public interface IProdutoRepository
 {
     void Adicionar(Produto produto);
-    Task<IEnumerable<Produto>> ListarTodos();
+    List<Produto> ListarTodos();
     Task<IQueryable<Produto>> ObterQueryProdutos();
     Task<Produto?> ObterPorId(int id);
     void Atualizar(Produto produto);

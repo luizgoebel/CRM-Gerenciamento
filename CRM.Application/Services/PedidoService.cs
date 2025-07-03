@@ -9,13 +9,15 @@ namespace CRM.Application.Services;
 
 public class PedidoService : IPedidoService
 {
+    private readonly IProdutoRepository _produtoRepository;
     private readonly IPedidoRepository _pedidoRepository;
     private readonly IClienteRepository _clienteRepository;
 
-    public PedidoService(IPedidoRepository pedidoRepository, IClienteRepository clienteRepository)
+    public PedidoService(IPedidoRepository pedidoRepository, IClienteRepository clienteRepository, IProdutoRepository produtoRepository)
     {
         this._pedidoRepository = pedidoRepository;
         this._clienteRepository = clienteRepository;
+        this._produtoRepository = produtoRepository;
     }
 
     public void CriarPedido(PedidoDto pedidoDto)
@@ -23,14 +25,26 @@ public class PedidoService : IPedidoService
         if (pedidoDto == null) throw new ServiceException("Verificar dados do pedido.");
         if (pedidoDto.ClienteId <= 0) throw new ServiceException("Não há cliente vinculado ao pedido.");
 
-        var cliente = _clienteRepository.ObterPorId((int)pedidoDto.ClienteId!).GetAwaiter().GetResult()
+        var cliente = this._clienteRepository.ObterPorId((int)pedidoDto.ClienteId!).GetAwaiter().GetResult()
             ?? throw new ServiceException("Cliente não encontrado.");
 
         var pedido = pedidoDto.ToModel();
 
+        List<int> idsSelecionados = pedido.Itens.Select(i => i.ProdutoId).Distinct().ToList();
+        List<Produto> produtos = this._produtoRepository.ListarTodos().Where(x => idsSelecionados.Contains(x.Id)).ToList();
+
+        foreach (PedidoItem pedidoItem in pedido.Itens)
+        {
+            Produto? produto = produtos.FirstOrDefault(x => x.Id == pedidoItem.ProdutoId);
+            if (produto != null)
+                pedidoItem.AtualizarValores(produto);
+        }
+
+        pedido.AtualizarValorTotal();
+
         ValidarPedido(pedido, cliente);
 
-        _pedidoRepository.CriarPedido(pedido);
+        this._pedidoRepository.CriarPedido(pedido);
     }
 
     public async Task<PaginacaoResultado<PedidoDto>> ObterPedidosPaginados(string filtro, int page, int pageSize)
@@ -82,7 +96,7 @@ public class PedidoService : IPedidoService
         this._pedidoRepository.Remover(pedido);
     }
 
-    
+
 
     private Pedido RecuperarPedido(int id)
     {

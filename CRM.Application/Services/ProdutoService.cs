@@ -16,10 +16,10 @@ public class ProdutoService : IProdutoService
         this._produtoRepository = produtoRepository;
     }
 
-    public async Task<List<ProdutoDto>> ListarTodos()
+    public List<ProdutoDto> ListarTodos()
     {
         IEnumerable<Produto> produtos = [];
-        produtos = await this._produtoRepository.ListarTodos();
+        produtos = this._produtoRepository.ListarTodos();
 
         return produtos.Select(p => p.ToDto()).ToList();
     }

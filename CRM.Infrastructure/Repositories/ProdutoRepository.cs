@@ -35,9 +35,9 @@ public class ProdutoRepository : IProdutoRepository
         this._context.SaveChanges();
     }
 
-    public async Task<IEnumerable<Produto>> ListarTodos()
+    public List<Produto> ListarTodos()
     {
-        return await this._context.Set<Produto>().ToListAsync();
+        return this._context.Set<Produto>().ToList();
     }
 
     public async Task<Produto?> ObterPorId(int id)

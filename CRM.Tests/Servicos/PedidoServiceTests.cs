@@ -14,6 +14,7 @@ public class PedidoServiceTests
 {
     private Mock<IPedidoRepository> _pedidoRepositoryMock = null!;
     private Mock<IClienteRepository> _clienteRepositoryMock = null!;
+    private Mock<IProdutoRepository> _produtoRepositoryMock = null!;
     private IPedidoService _pedidoService = null!;
 
     [SetUp]
@@ -21,7 +22,8 @@ public class PedidoServiceTests
     {
         _pedidoRepositoryMock = new Mock<IPedidoRepository>();
         _clienteRepositoryMock = new Mock<IClienteRepository>();
-        _pedidoService = new PedidoService(_pedidoRepositoryMock.Object, _clienteRepositoryMock.Object);
+        _produtoRepositoryMock = new Mock<IProdutoRepository>();
+        _pedidoService = new PedidoService(_pedidoRepositoryMock.Object, _clienteRepositoryMock.Object, _produtoRepositoryMock.Object);
     }
 
     [Test]
@@ -37,6 +39,17 @@ public class PedidoServiceTests
                 new PedidoItemDto { ProdutoId = 1, Quantidade = 2 }
             }
         };
+
+        _produtoRepositoryMock.Setup(r => r.ListarTodos())
+            .Returns(new List<Produto>
+            {
+                new Produto
+                {
+                    Id = 1,
+                    Nome = "Produto Teste",
+                    Preco = 10m
+                }
+            });
 
         _clienteRepositoryMock.Setup(r => r.ObterPorId((int)pedidoDto.ClienteId))
             .ReturnsAsync(new Cliente

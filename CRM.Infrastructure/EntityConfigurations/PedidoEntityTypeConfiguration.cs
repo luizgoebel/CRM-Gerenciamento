@@ -11,10 +11,15 @@ namespace CRM.Infrastructure.EntityConfigurations
             builder.ToTable("pedido");
             builder.HasKey(p => p.Id);
 
-            builder.HasOne<Cliente>()
-                   .WithMany()
-                   .HasForeignKey(p => p.ClienteId)
-                   .OnDelete(DeleteBehavior.Cascade);
+            builder.Property(p => p.ValorTotal)
+         .HasColumnType("decimal(10,2)");
+
+
+            builder.HasOne(p => p.Cliente)
+            .WithMany()
+            .HasForeignKey(p => p.ClienteId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         }
     }
 }

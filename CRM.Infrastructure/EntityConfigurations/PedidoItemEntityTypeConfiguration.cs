@@ -11,6 +11,13 @@ public class PedidoItemEntityTypeConfiguration : IEntityTypeConfiguration<Pedido
         builder.ToTable("pedido_item");
         builder.HasKey(pi => pi.Id);
 
+        builder.Property(p => p.PrecoUnitario)
+        .HasColumnType("decimal(10,2)");
+
+        builder.Property(p => p.Subtotal)
+               .HasColumnType("decimal(12,2)");
+
+
         builder.HasOne(pi => pi.Pedido)
                .WithMany(p => p.Itens)
                .HasForeignKey(pi => pi.PedidoId)

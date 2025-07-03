@@ -6,12 +6,10 @@ public class Pedido : BaseModel<Pedido>
     public int ClienteId { get; set; }
     public virtual Cliente? Cliente { get; set; }
     public virtual List<PedidoItem> Itens { get; set; } = [];
-
-    private decimal _valorTotal;
-    public decimal ValorTotal => _valorTotal;
+    public decimal ValorTotal { get; private set; }
 
     public void AtualizarValorTotal()
     {
-        _valorTotal = Itens?.Sum(i => i.Subtotal) ?? 0m;
+        ValorTotal = Itens?.Sum(i => i.Subtotal) ?? 0m;
     }
 }

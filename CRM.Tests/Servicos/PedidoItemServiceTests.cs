@@ -26,6 +26,9 @@ namespace CRM.Tests.Servicos
         [Test]
         public void Adicionar_DeveSalvarPedidoItem()
         {
+            var produto = new Produto { Id = 2, Nome = "Produto Teste", Preco = 10 };
+            _produtoRepositoryMock.Setup(r => r.ObterPorId(2)).ReturnsAsync(produto);
+
             var dto = new PedidoItemDto
             {
                 Id = 1,
@@ -78,10 +81,13 @@ namespace CRM.Tests.Servicos
         }
 
         [Test]
-        public async Task Atualizar_DeveAlterarItem()
+        public void Atualizar_DeveAlterarItem()
         {
-            var dto = new PedidoItemDto { Id = 1, ProdutoId = 2, Quantidade = 5, PrecoUnitario = 10 };
-            var itemExistente = new PedidoItem { Id = 1, PedidoId = 1, ProdutoId = 1, Quantidade = 2 };
+            var dto = new PedidoItemDto { Id = 1, PedidoId = 1, ProdutoId = 2, Quantidade = 1 };
+            var itemExistente = new PedidoItem { Id = 1, PedidoId = 1, ProdutoId = 2, Quantidade = 2 };
+
+            var produto = new Produto { Id = 2, Nome = "Produto Teste", Preco = 10 };
+            _produtoRepositoryMock.Setup(r => r.ObterPorId(2)).ReturnsAsync(produto);
 
             _pedidoItemRepositoryMock.Setup(r => r.ObterPorId((int)dto.Id)).ReturnsAsync(itemExistente);
 
@@ -91,7 +97,7 @@ namespace CRM.Tests.Servicos
                 p.Id == dto.Id &&
                 p.ProdutoId == dto.ProdutoId &&
                 p.Quantidade == dto.Quantidade &&
-                p.Subtotal == dto.Quantidade * dto.PrecoUnitario
+                p.Subtotal == dto.Quantidade * produto.Preco // Corrigido: usa o preço do produto, não do DTO
             )), Times.Once);
         }
 

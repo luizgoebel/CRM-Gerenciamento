@@ -32,11 +32,6 @@ public class PedidoService : IPedidoService
 
         _pedidoRepository.CriarPedido(pedido);
     }
-    void IPedidoService.CriarPedido(PedidoDto pedidoDto)
-    {
-        throw new NotImplementedException();
-    }
-
 
     public async Task<PaginacaoResultado<PedidoDto>> ObterPedidosPaginados(string filtro, int page, int pageSize)
     {

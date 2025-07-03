@@ -33,7 +33,7 @@ public class PedidoItemService : IPedidoItemService
 
     public void Atualizar(PedidoItemDto dto)
     {
-        if (EhPedidoItemDtoValido(dto))
+        if (!EhPedidoItemDtoValido(dto))
             throw new ServiceException("Item inválido.");
 
         PedidoItem item = this._pedidoItemRepository.ObterPorId((int)dto.Id!).GetAwaiter().GetResult()

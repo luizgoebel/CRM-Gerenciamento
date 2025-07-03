@@ -11,8 +11,10 @@ public static class PedidoItemMapper
         {
             Id = item.Id,
             ProdutoId = item.ProdutoId,
+            PedidoId = item.PedidoId,
             Quantidade = item.Quantidade,
-            PrecoUnitario = item.PrecoUnitario
+            PrecoUnitario = item.PrecoUnitario,
+            Subtotal = item.Subtotal
         };
     }
 
@@ -20,9 +22,10 @@ public static class PedidoItemMapper
     {
         return new PedidoItem
         {
-            ProdutoId = dto.ProdutoId,
-            Quantidade = dto.Quantidade,
-            PrecoUnitario = dto.PrecoUnitario
+            Id = dto.Id ?? 0,
+            PedidoId = dto.PedidoId ?? 0,
+            ProdutoId = dto.ProdutoId ?? 0,
+            Quantidade = dto.Quantidade ?? 0
         };
     }
 }

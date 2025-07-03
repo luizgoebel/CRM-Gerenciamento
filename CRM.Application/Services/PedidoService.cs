@@ -20,21 +20,21 @@ public class PedidoService : IPedidoService
 
     public void CriarPedido(PedidoDto pedidoDto)
     {
-        if (pedidoDto == null) throw new ArgumentNullException(nameof(pedidoDto));
+        if (pedidoDto == null) throw new ServiceException("Verificar dados do pedido.");
+        if (pedidoDto.ClienteId <= 0) throw new ServiceException("Não há cliente vinculado ao pedido.");
 
-        // Buscar cliente
-        var cliente = _clienteRepository.ObterPorId(pedidoDto.ClienteId).GetAwaiter().GetResult()
+        var cliente = _clienteRepository.ObterPorId((int)pedidoDto.ClienteId!).GetAwaiter().GetResult()
             ?? throw new ServiceException("Cliente não encontrado.");
 
-        // Mapear para entidade
         var pedido = pedidoDto.ToModel();
-        pedido.AssociarCliente(cliente);
 
-        // Validação
-        ValidarPedido(pedido);
+        ValidarPedido(pedido, cliente);
 
-        // Persistência
-        _pedidoRepository.CriarPedido(pedido); // salva Pedido e seus Itens (por cascade ou explicitamente)
+        _pedidoRepository.CriarPedido(pedido);
+    }
+    void IPedidoService.CriarPedido(PedidoDto pedidoDto)
+    {
+        throw new NotImplementedException();
     }
 
 
@@ -48,7 +48,6 @@ public class PedidoService : IPedidoService
             query = query.Where(c => c.Cliente!.Nome.ToLower().Contains(filtro));
         }
 
-        // Ordena pela DataCriacao do mais recente para o mais antigo, depois pelo Nome
         query = query
             .OrderByDescending(c => c.DataCriacao)
             .ThenBy(c => c.Cliente!.Nome);
@@ -88,13 +87,15 @@ public class PedidoService : IPedidoService
         this._pedidoRepository.Remover(pedido);
     }
 
+    
+
     private Pedido RecuperarPedido(int id)
     {
         return this._pedidoRepository.ObterPorId(id).GetAwaiter().GetResult()
            ?? throw new ServiceException($"Pedido não encontrado.");
     }
 
-    private void ValidarPedido(Pedido pedido)
+    private void ValidarPedido(Pedido pedido, Cliente cliente)
     {
         if (pedido.Itens == null || pedido.Itens.Count < 1)
             throw new ServiceException("Pedido deve conter pelo menos um item.");
@@ -107,10 +108,7 @@ public class PedidoService : IPedidoService
         if (produtosDuplicados.Any())
             throw new ServiceException("Não é permitido adicionar o mesmo produto mais de uma vez no pedido.");
 
-        if(pedido.Cliente == null)
-            throw new ServiceException("Não há um cliente associado ao pedido.");
-
-        if (!pedido.Cliente.CadastroCompleto())
+        if (!cliente.CadastroCompleto())
             throw new ServiceException("Cadastro incompleto. Atualize o cadastro do cliente para prosseguir com o pedido.");
 
         decimal somaItens = pedido.Itens.Sum(i => i.Subtotal);

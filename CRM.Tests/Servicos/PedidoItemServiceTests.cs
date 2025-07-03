@@ -12,13 +12,15 @@ namespace CRM.Tests.Servicos
     public class PedidoItemServiceTests
     {
         private Mock<IPedidoItemRepository> _pedidoItemRepositoryMock;
+        private Mock<IProdutoRepository> _produtoRepositoryMock;
         private PedidoItemService _pedidoItemService;
 
         [SetUp]
         public void Setup()
         {
+            _produtoRepositoryMock = new Mock<IProdutoRepository>();
             _pedidoItemRepositoryMock = new Mock<IPedidoItemRepository>();
-            _pedidoItemService = new PedidoItemService(_pedidoItemRepositoryMock.Object);
+            _pedidoItemService = new PedidoItemService(_pedidoItemRepositoryMock.Object, _produtoRepositoryMock.Object);
         }
 
         [Test]
@@ -55,7 +57,7 @@ namespace CRM.Tests.Servicos
         [Test]
         public async Task ObterPorId_QuandoItemExiste_DeveRetornarDto()
         {
-            var item = new PedidoItem { Id = 1, PedidoId = 1, ProdutoId = 2, Quantidade = 3, PrecoUnitario = 2 };
+            var item = new PedidoItem { Id = 1, PedidoId = 1, ProdutoId = 2, Quantidade = 3 };
 
             _pedidoItemRepositoryMock.Setup(r => r.ObterPorId(1)).ReturnsAsync(item);
 

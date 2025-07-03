@@ -27,7 +27,7 @@ public class ClienteRepository : IClienteRepository
         this. _context.SaveChanges();
     }
 
-    public async Task<Cliente?> ObterPorId(int id)
+    public async Task<Cliente> ObterPorId(int id)
     {
         return await _context.Set<Cliente>().FindAsync(id);
     }

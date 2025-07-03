@@ -38,10 +38,10 @@ public class PedidoServiceTests
             }
         };
 
-        _clienteRepositoryMock.Setup(r => r.ObterPorId(pedidoDto.ClienteId))
+        _clienteRepositoryMock.Setup(r => r.ObterPorId((int)pedidoDto.ClienteId))
             .ReturnsAsync(new Cliente
             {
-                Id = pedidoDto.ClienteId,
+                Id = (int)pedidoDto.ClienteId,
                 Nome = "João",
                 Email = "joao@email.com",
                 Endereco = "endereço",
@@ -59,7 +59,7 @@ public class PedidoServiceTests
             .ReturnsAsync(new Pedido
             {
                 Id = 1,
-                ClienteId = pedidoDto.ClienteId,
+                ClienteId = (int)pedidoDto.ClienteId,
                 Itens = new List<PedidoItem>
                 {
                     new PedidoItem { ProdutoId = 1, Quantidade = 2 }

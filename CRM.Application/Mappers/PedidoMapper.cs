@@ -12,7 +12,8 @@ public static class PedidoMapper
             Id = pedido.Id,
             ClienteId = pedido.ClienteId,
             Cliente = pedido.Cliente?.Nome,
-            Itens = pedido.Itens.Select(i => i.ToDto()).ToList()
+            Itens = pedido.Itens?.Select(i => i.ToDto()).ToList(),
+            ValorTotal = pedido.ValorTotal
         };
     }
 
@@ -20,9 +21,11 @@ public static class PedidoMapper
     {
         var pedido = new Pedido
         {
-            ClienteId = dto.ClienteId,
-            Itens = dto.Itens.Select(i => i.ToModel()).ToList()
+            Id = dto.Id ?? 0,
+            ClienteId = dto.ClienteId ?? 0,
+            Itens = dto.Itens?.Select(i => i.ToModel()).ToList() ?? new()
         };
+        pedido.AtualizarValorTotal();
         return pedido;
     }
 }

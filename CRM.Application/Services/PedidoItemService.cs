@@ -10,30 +10,40 @@ namespace CRM.Application.Services;
 public class PedidoItemService : IPedidoItemService
 {
     private readonly IPedidoItemRepository _pedidoItemRepository;
+    private readonly IProdutoRepository _produtoRepository;
 
-    public PedidoItemService(IPedidoItemRepository pedidoItemRepository)
+    public PedidoItemService(IPedidoItemRepository pedidoItemRepository, IProdutoRepository produtoRepository)
     {
         this._pedidoItemRepository = pedidoItemRepository;
+        this._produtoRepository = produtoRepository;
     }
 
     public void Adicionar(PedidoItemDto dto)
     {
         if (dto == null)
-            throw new ServiceException("Item inválido.");
+            throw new ServiceException("Ocorreu um erro ao processar alguns itens.");
 
         PedidoItem item = dto.ToModel();
-
+        Produto? produto = _produtoRepository.ObterPorId(item.ProdutoId).GetAwaiter().GetResult() 
+            ?? throw new ServiceException($"Ocorreu um erro ao processar o produto."); ;
+        item.AtualizarValores(produto);
         Validar(item);
-
         this._pedidoItemRepository.Adicionar(item);
     }
 
     public void Atualizar(PedidoItemDto dto)
     {
-        PedidoItem item = this._pedidoItemRepository.ObterPorId((int)dto.Id).GetAwaiter().GetResult()
-            ?? throw new ServiceException("Item não encontrado.");
+        if (EhPedidoItemDtoValido(dto))
+            throw new ServiceException("Item inválido.");
 
-        item.Alterar((int)dto.Id, dto.ProdutoId, dto.Quantidade, dto.PrecoUnitario);
+        PedidoItem item = this._pedidoItemRepository.ObterPorId((int)dto.Id!).GetAwaiter().GetResult()
+            ?? throw new ServiceException("Ocorreu um erro ao processar alguns itens.");
+        Produto produto = this._produtoRepository.ObterPorId((int)item.ProdutoId!).GetAwaiter().GetResult()
+            ?? throw new ServiceException("Ocorreu um erro ao processar alguns itens.");
+
+        item.Quantidade = dto.Quantidade ?? item.Quantidade;
+
+        item.AtualizarValores(produto);
 
         this._pedidoItemRepository.Atualizar(item);
     }
@@ -70,5 +80,13 @@ public class PedidoItemService : IPedidoItemService
 
         if (!resultado.IsValid)
             throw new DomainException(resultado.Erros.First());
+    }
+    private bool EhPedidoItemDtoValido(PedidoItemDto dto)
+    {
+        return dto != null
+            && dto.Id.HasValue && dto.Id.Value > 0
+            && dto.PedidoId.HasValue && dto.PedidoId.Value > 0
+            && dto.ProdutoId.HasValue && dto.ProdutoId.Value > 0
+            && dto.Quantidade.HasValue && dto.Quantidade.Value > 0;
     }
 }

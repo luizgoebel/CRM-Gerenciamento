@@ -7,27 +7,25 @@ public class PedidoItem : BaseModel<PedidoItem>
     public int ProdutoId { get; set; }
     public int Quantidade { get; set; }
 
-    private decimal _precoUnitario;
-    private decimal _subtotal;
-
-    public decimal PrecoUnitario => _precoUnitario;
-    public decimal Subtotal => _subtotal;
+    public decimal PrecoUnitario { get; private set; }
+    public decimal Subtotal { get; private set; }
 
     public virtual Produto? Produto { get; set; }
     public virtual Pedido? Pedido { get; set; }
 
     public void AtualizarValores(Produto produto)
     {
-        Validar();
-        _precoUnitario = produto?.Preco ?? 0m;
-        _subtotal = Quantidade * _precoUnitario;
+        if (produto == null) throw new ArgumentNullException(nameof(produto));
+
+        PrecoUnitario = produto.Preco;
+        Subtotal = Quantidade * PrecoUnitario;
     }
 
     public ValidationResult Validar()
     {
         ValidationResult result = new();
 
-        if (this.ProdutoId <= 0 || this.Quantidade <= 0 || this.Subtotal <= 0)
+        if (ProdutoId <= 0 || Quantidade <= 0 || Subtotal <= 0)
             result.AddError("Pedido inválido.");
 
         return result;

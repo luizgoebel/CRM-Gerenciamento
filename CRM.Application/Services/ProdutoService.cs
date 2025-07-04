@@ -7,48 +7,41 @@ using CRM.Domain.Entidades;
 
 namespace CRM.Application.Services;
 
-public class ProdutoService : IProdutoService
+public class ProdutoService(IProdutoRepository produtoRepository) : IProdutoService
 {
-    private readonly IProdutoRepository _produtoRepository;
-
-    public ProdutoService(IProdutoRepository produtoRepository)
-    {
-        this._produtoRepository = produtoRepository;
-    }
+    private readonly IProdutoRepository _produtoRepository = produtoRepository;
 
     public List<ProdutoDto> ListarTodos()
     {
-        IEnumerable<Produto> produtos = [];
-        produtos = this._produtoRepository.ListarTodos();
-
+        var produtos = _produtoRepository.ListarTodos();
         return produtos.Select(p => p.ToDto()).ToList();
     }
 
     public async Task<PaginacaoResultado<ProdutoDto>> ObterProdutosPaginados(string filtro, int page, int pageSize)
     {
-        IQueryable<Produto> query = await _produtoRepository.ObterQueryProdutos();
+        var query = await _produtoRepository.ObterQueryProdutos();
 
         if (!string.IsNullOrWhiteSpace(filtro))
         {
-            filtro = filtro.ToLower();
-            query = query.Where(c => c.Nome.ToLower().Contains(filtro));
+            var texto = filtro.ToLower();
+            query = query.Where(c => c.Nome.ToLower().Contains(texto));
         }
 
-        // Ordenar pela DataCriacao do mais recente para o mais antigo, depois pelo Nome
         query = query
             .OrderByDescending(c => c.DataCriacao)
             .ThenBy(c => c.Nome);
 
         if (!query.Any())
-            return new PaginacaoResultado<ProdutoDto>();
+            return new();
 
-        int total = query.Count();
-        List<Produto> produtos = query
+        var total = query.Count();
+
+        var produtos = query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToList();
 
-        List<ProdutoDto> produtosDto = produtos.Select(p => p.ToDto()).ToList();
+        var produtosDto = produtos.Select(p => p.ToDto()).ToList();
 
         return new PaginacaoResultado<ProdutoDto>
         {
@@ -61,48 +54,46 @@ public class ProdutoService : IProdutoService
 
     public ProdutoDto ObterPorId(int id)
     {
-        Produto produto = RecuperarProduto(id);
-        ProdutoDto produtoDto = produto.ToDto();
+        var produto = _produtoRepository.ObterPorId(id).GetAwaiter().GetResult()
+            ?? throw new ServiceException("Produto não encontrado.");
 
-        return produtoDto;
+        return produto.ToDto();
     }
 
-    public void Salvar(ProdutoDto produtoDto)
+    public void Salvar(ProdutoDto dto)
     {
-        if (produtoDto == null)
-            throw new NullReferenceException("O DTO do produto não pode ser nulo.");
+        if (dto == null)
+            throw new ServiceException("Dados do produto inválidos.");
 
-        Validar(produtoDto.ToModel());
+        var produto = dto.ToModel();
+        Validar(produto);
 
-        if (produtoDto.Id > 0)
+        if (dto.Id > 0)
         {
-            Produto produto = RecuperarProduto(produtoDto.Id ?? 0);
-            produto.Alterar(produtoDto.Nome, produtoDto.Preco);
-            this._produtoRepository.Atualizar(produto);
+            var existente = _produtoRepository.ObterPorId(dto.Id.Value).GetAwaiter().GetResult()
+                ?? throw new ServiceException("Produto não encontrado para atualização.");
 
+            existente.Alterar(dto.Nome, dto.Preco);
+            _produtoRepository.Atualizar(existente);
             return;
         }
 
-        this._produtoRepository.Adicionar(produtoDto.ToModel());
+        _produtoRepository.Adicionar(produto);
     }
 
     public void Remover(int id)
     {
-        Produto produto = RecuperarProduto(id);
-        this._produtoRepository.Remover(produto);
+        var produto = _produtoRepository.ObterPorId(id).GetAwaiter().GetResult()
+            ?? throw new ServiceException("Produto não encontrado.");
+
+        _produtoRepository.Remover(produto);
     }
 
     private void Validar(Produto produto)
     {
-        ValidationResult resultado = produto.Validar();
+        var resultado = produto.Validar();
 
         if (!resultado.IsValid)
             throw new DomainException(resultado.Erros.First());
-    }
-
-    private Produto RecuperarProduto(int id)
-    {
-        return this._produtoRepository.ObterPorId(id).GetAwaiter().GetResult()
-            ?? throw new ServiceException($"Produto não encontrado.");
     }
 }

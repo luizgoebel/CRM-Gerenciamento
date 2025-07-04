@@ -5,6 +5,8 @@ using CRM.Application.Mappers;
 using CRM.Core.Interfaces;
 using CRM.Domain.Entidades;
 
+namespace CRM.Application.Services;
+
 public class ClienteService(IClienteRepository clienteRepository) : IClienteService
 {
     private readonly IClienteRepository _clienteRepository = clienteRepository;

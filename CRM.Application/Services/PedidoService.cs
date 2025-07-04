@@ -5,6 +5,8 @@ using CRM.Application.Mappers;
 using CRM.Core.Interfaces;
 using CRM.Domain.Entidades;
 
+namespace CRM.Application.Services;
+
 public class PedidoService(IPedidoRepository pedidoRepository, IClienteRepository clienteRepository, IProdutoRepository produtoRepository) : IPedidoService
 {
     private readonly IProdutoRepository _produtoRepository = produtoRepository;

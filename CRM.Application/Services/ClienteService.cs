@@ -5,88 +5,74 @@ using CRM.Application.Mappers;
 using CRM.Core.Interfaces;
 using CRM.Domain.Entidades;
 
-namespace CRM.Application.Services;
-
-public class ClienteService : IClienteService
+public class ClienteService(IClienteRepository clienteRepository) : IClienteService
 {
-    private readonly IClienteRepository _clienteRepository;
-
-    public ClienteService(IClienteRepository clienteRepository)
-    {
-        this._clienteRepository = clienteRepository;
-    }
+    private readonly IClienteRepository _clienteRepository = clienteRepository;
 
     public async Task<ClienteDto> ObterPorId(int id)
     {
-        Cliente cliente = await this._clienteRepository.ObterPorId(id)
+        var cliente = await _clienteRepository.ObterPorId(id)
             ?? throw new ServiceException("Cliente não encontrado.");
-        ClienteDto clienteDto = cliente.ToDto();
 
-        return clienteDto;
+        return cliente.ToDto();
     }
 
-    public void Salvar(ClienteDto clienteDto)
+    public void Salvar(ClienteDto dto)
     {
-        if (clienteDto == null)
-            throw new ServiceException("Ocorreu um erro.");
-        ValidarCadastroParcial(clienteDto.ToModel());
+        if (dto == null)
+            throw new ServiceException("Dados do cliente inválidos.");
 
-        if (clienteDto.Id > 0)
+        var cliente = dto.ToModel();
+        ValidarCadastroParcial(cliente);
+
+        if (dto.Id > 0)
         {
-            Cliente cliente = this._clienteRepository.ObterPorId(clienteDto.Id ?? 0).GetAwaiter().GetResult()
-                  ?? throw new ServiceException("Cliente não encontrado.");
-            cliente.Alterar(clienteDto.Nome, clienteDto.Telefone, clienteDto.Email, clienteDto.Endereco);
-            this._clienteRepository.Atualizar(cliente);
+            var existente = _clienteRepository.ObterPorId(dto.Id!.Value).GetAwaiter().GetResult()
+                ?? throw new ServiceException("Cliente não encontrado para atualização.");
 
+            existente.Alterar(dto.Nome, dto.Telefone, dto.Email, dto.Endereco);
+            _clienteRepository.Atualizar(existente);
             return;
         }
 
-        _clienteRepository.Adicionar(clienteDto.ToModel());
-    }
-
-    private void ValidarCadastroParcial(Cliente cliente)
-    {
-        ValidationResult resultado = cliente.ValidarCadastroParcial();
-
-        if (!resultado.IsValid)
-            throw new DomainException(resultado.Erros.First());
+        _clienteRepository.Adicionar(cliente);
     }
 
     public async Task<List<ClienteDto>> ObterTodosClientes()
     {
-        var clientes = await this._clienteRepository.ObterTodosClientes();
+        var clientes = await _clienteRepository.ObterTodosClientes();
+
         if (clientes == null || !clientes.Any())
             return [];
 
-        var clientesDto = clientes.Select(c => c.ToDto()).ToList();
-
-        return clientesDto;
+        return clientes.Select(c => c.ToDto()).ToList();
     }
 
     public async Task<PaginacaoResultado<ClienteDto>> ObterClientesPaginados(string filtro, int page, int pageSize)
     {
-        IQueryable<Cliente> query = await this._clienteRepository.ObterQueryClientes();
+        var query = await _clienteRepository.ObterQueryClientes();
 
         if (!string.IsNullOrWhiteSpace(filtro))
         {
-            filtro = filtro.ToLower();
-            query = query.Where(c => c.Nome.ToLower().Contains(filtro));
+            var texto = filtro.ToLower();
+            query = query.Where(c => c.Nome.ToLower().Contains(texto));
         }
 
-        // Ordena pela DataCriacao do mais recente para o mais antigo, depois pelo Nome
         query = query
             .OrderByDescending(c => c.DataCriacao)
             .ThenBy(c => c.Nome);
 
         if (!query.Any())
-            return new PaginacaoResultado<ClienteDto>();
+            return new();
 
-        int total = query.Count();
-        List<Cliente> clientes = [.. query
+        var total = query.Count();
+
+        var clientes = query
             .Skip((page - 1) * pageSize)
-            .Take(pageSize)];
+            .Take(pageSize)
+            .ToList();
 
-        List<ClienteDto> clientesDto = [.. clientes.Select(c => c.ToDto())];
+        var clientesDto = clientes.Select(c => c.ToDto()).ToList();
 
         return new PaginacaoResultado<ClienteDto>
         {
@@ -95,5 +81,13 @@ public class ClienteService : IClienteService
             PaginaAtual = page,
             TotalPaginas = (int)Math.Ceiling((double)total / pageSize)
         };
+    }
+
+    private void ValidarCadastroParcial(Cliente cliente)
+    {
+        var resultado = cliente.ValidarCadastroParcial();
+
+        if (!resultado.IsValid)
+            throw new DomainException(resultado.Erros.First());
     }
 }

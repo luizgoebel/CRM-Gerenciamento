@@ -17,6 +17,7 @@ public static class Dependencias
     {
         services.AddHttpContextAccessor();
 
+        services.AddTransient<IInicioService, InicioService>();
         services.AddTransient<IClienteService, ClienteService>();
         services.AddTransient<IPedidoService, PedidoService>();
         services.AddTransient<IProdutoService, ProdutoService>();

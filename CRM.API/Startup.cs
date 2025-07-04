@@ -99,18 +99,18 @@ public class Startup
             app.UseHsts();
         }
 
-        app.UseHttpsRedirection(); // (opcional, mas recomendado)
+        app.UseHttpsRedirection();
 
         app.UseSwagger();
         app.UseSwaggerUI(c =>
         {
             c.SwaggerEndpoint("/swagger/v1/swagger.json", "API do CRM v1");
-            c.RoutePrefix = "swagger"; // Agora: https://localhost:7095/swagger
+            c.RoutePrefix = "docs"; // Agora: https://localhost:7095/swagger
         });
 
         app.UseRouting();
 
-        app.UseCors("AllowAll"); // 👈 Importante para consumir via HTTPClient de outra aplicação
+        app.UseCors("AllowAll");
 
         app.UseMiddleware<ExceptionMiddleware>();
 

@@ -49,18 +49,11 @@ public class ExceptionMiddleware
         context.Response.Clear();
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = statusCode;
-        await context.Response.WriteAsync(
-            JsonSerializer.Serialize(new DetalhesDoErro
-            {
-                StatusCode = statusCode,
-                Mensagem = exception.Message,
-                ObjetoErro = objetoErro
-            }, _jsonOptions));
+        await context.Response.WriteAsync(new DetalhesDoErro()
+        {
+            StatusCode = context.Response.StatusCode,
+            Mensagem = exception.Message,
+            ObjetoErro = objetoErro
+        }.ToString());
     }
-
-    private static readonly JsonSerializerOptions _jsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-    };
 }

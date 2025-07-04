@@ -14,7 +14,6 @@ public sealed class CrmDbContext : Microsoft.EntityFrameworkCore.DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) { }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // Additional model configurations can be added here
         modelBuilder.ApplyConfiguration(new ClienteEntityTypeConfiguration());
         modelBuilder.ApplyConfiguration(new PedidoItemEntityTypeConfiguration());
         modelBuilder.ApplyConfiguration(new PedidoEntityTypeConfiguration());

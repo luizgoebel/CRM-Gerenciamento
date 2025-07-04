@@ -2,9 +2,9 @@
 
 public class PedidoDto
 {
-    public int? Id { get; set; } // null ao criar
+    public int? Id { get; set; }
     public int? ClienteId { get; set; }
-    public string? Cliente { get; set; } // usado só na exibição
+    public string? Cliente { get; set; } 
     public List<PedidoItemDto>? Itens { get; set; } = new();
-    public decimal? ValorTotal { get; set; } // sempre enviado para exibição
+    public decimal? ValorTotal { get; set; } 
 }

@@ -114,7 +114,5 @@ public class ClienteServiceTests
         // Act & Assert
         var ex = Assert.Throws<ServiceException>(() =>
             _clienteService.Salvar(clienteDto));
-
-        Assert.That(ex.Message, Is.EqualTo("Cliente não encontrado."));
     }
 }

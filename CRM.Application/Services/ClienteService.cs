@@ -92,4 +92,9 @@ public class ClienteService(IClienteRepository clienteRepository) : IClienteServ
         if (!resultado.IsValid)
             throw new DomainException(resultado.Erros.First());
     }
+
+    public async Task<int> ObterTotalClientes()
+    {
+        return await _clienteRepository.ObterTotalClientes();
+    }
 }

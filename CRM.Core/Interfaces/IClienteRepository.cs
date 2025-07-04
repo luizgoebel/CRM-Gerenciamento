@@ -9,4 +9,5 @@ public interface IClienteRepository
     Task<List<Cliente>> ObterTodosClientes();
     Task<IQueryable<Cliente>> ObterQueryClientes();
     void Atualizar(Cliente cliente);
+    Task<int> ObterTotalClientes();
 }

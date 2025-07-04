@@ -9,4 +9,5 @@ public interface IProdutoService
     ProdutoDto ObterPorId(int id);
     void Salvar(ProdutoDto produtoDto);
     void Remover(int id);
+    Task<int> ObterTotalProdutos();
 }

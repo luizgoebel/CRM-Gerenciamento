@@ -96,4 +96,9 @@ public class ProdutoService(IProdutoRepository produtoRepository) : IProdutoServ
         if (!resultado.IsValid)
             throw new DomainException(resultado.Erros.First());
     }
+
+    public async Task<int> ObterTotalProdutos()
+    {
+        return await _produtoRepository.ObterTotalProdutos();
+    }
 }

@@ -21,11 +21,13 @@ public class InicioService : IInicioService
 
     public async Task<DashboardDto> ObterDadosDashboard()
     {
-        int totalClientes = await _clienteService.ObterTotalClientes ?? 0;
-        int totalProdutos = await _produtoService.ObterTotalProdutos() ?? 0;
-        int totalPedidosHoje = await _pedidoService.ObterTotalPedidosHoje() ?? 0;
+        DateOnly dataHoje = DateOnly.FromDateTime(DateTime.Now);
+       
+        int totalClientes = await _clienteService.ObterTotalClientes();
+        int totalProdutos = await _produtoService.ObterTotalProdutos();
+        int totalPedidosHoje = await _pedidoService.ObterTotalPedidosNaData(dataHoje);
 
-        DashboardDto dashboard = new(totalClientes, totalProdutos, totalPedidosHoje);
-        return dashboard;
+        return new DashboardDto(totalClientes, totalProdutos, totalPedidosHoje);
     }
+
 }

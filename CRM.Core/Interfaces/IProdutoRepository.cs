@@ -10,4 +10,5 @@ public interface IProdutoRepository
     Task<Produto?> ObterPorId(int id);
     void Atualizar(Produto produto);
     void Remover(Produto produto);
+    Task<int> ObterTotalProdutos();
 }

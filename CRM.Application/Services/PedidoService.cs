@@ -158,4 +158,9 @@ public class PedidoService(IPedidoRepository pedidoRepository, IClienteRepositor
         if (Math.Abs(pedido.ValorTotal - soma) > 0.01m)
             throw new ServiceException("O valor total está incorreto com base nos itens informados.");
     }
+
+    public async Task<int> ObterTotalPedidosNaData(DateOnly data)
+    {
+        return await _pedidoRepository.ObterTotalPedidosNaData(data);
+    }
 }

@@ -8,4 +8,5 @@ public interface IClienteService
     Task<List<ClienteDto>> ObterTodosClientes();
     Task<PaginacaoResultado<ClienteDto>> ObterClientesPaginados(string filtro, int page, int pageSize);
     void Salvar(ClienteDto clienteDto);
+    Task<int> ObterTotalClientes();
 }

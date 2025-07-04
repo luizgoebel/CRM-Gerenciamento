@@ -9,4 +9,5 @@ public interface IPedidoRepository
     Task<IQueryable<Pedido>> ObterQueryPedidos();
     void Remover(Pedido pedido);
     void Atualizar(Pedido pedido);
+    Task<int> ObterTotalPedidosNaData(DateOnly data);
 }

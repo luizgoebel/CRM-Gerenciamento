@@ -2,9 +2,11 @@
 using CRM.Domain.Entidades;
 using CRM.Infrastructure.DbContext;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 public class ClienteRepository : IClienteRepository
 {
@@ -42,4 +44,8 @@ public class ClienteRepository : IClienteRepository
         return await Task.FromResult(_context.Set<Cliente>().AsQueryable());
     }
 
+    public async Task<int> ObterTotalClientes()
+    {
+        return await _context.Set<Cliente>() .CountAsync();
+    }
 }

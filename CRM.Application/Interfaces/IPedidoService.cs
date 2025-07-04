@@ -8,4 +8,5 @@ public interface IPedidoService
     Task<PedidoDto> ObterPorId(int id);
     Task<PaginacaoResultado<PedidoDto>> ObterPedidosPaginados(string filtro, int page, int pageSize);
     void Remover(int id);
+    Task<int> ObterTotalPedidosNaData(DateOnly data);
 }

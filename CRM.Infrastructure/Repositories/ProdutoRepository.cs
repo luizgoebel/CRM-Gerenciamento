@@ -49,4 +49,9 @@ public class ProdutoRepository : IProdutoRepository
     {
         return await Task.FromResult(_context.Set<Produto>().OrderBy(c => c.Nome).AsQueryable());
     }
+
+    public async Task<int> ObterTotalProdutos()
+    {
+        return await _context.Set<Produto>().CountAsync();
+    }
 }

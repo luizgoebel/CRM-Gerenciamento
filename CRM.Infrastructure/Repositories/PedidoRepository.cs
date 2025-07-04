@@ -2,6 +2,7 @@
 using CRM.Domain.Entidades;
 using CRM.Infrastructure.DbContext;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -40,6 +41,13 @@ public class PedidoRepository : IPedidoRepository
             .AsQueryable();
 
         return await Task.FromResult(query);
+    }
+
+    public async Task<int> ObterTotalPedidosNaData(DateOnly data)
+    {
+        return await _context.Set<Pedido>()
+            .Where(p => p.DataCriacao.HasValue && DateOnly.FromDateTime(p.DataCriacao.Value) == data)
+            .CountAsync();
     }
 
     public void Remover(Pedido pedido)

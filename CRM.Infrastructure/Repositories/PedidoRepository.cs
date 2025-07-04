@@ -16,6 +16,12 @@ public class PedidoRepository : IPedidoRepository
         this._context = context;
     }
 
+    public void Atualizar(Pedido pedido)
+    {
+        this._context.Set<Pedido>().Update(pedido);
+        this._context.SaveChanges();
+    }
+
     public void CriarPedido(Pedido pedido)
     {
         this._context.Set<Pedido>().Add(pedido);

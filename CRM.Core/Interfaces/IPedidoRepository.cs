@@ -8,4 +8,5 @@ public interface IPedidoRepository
     Task<Pedido?> ObterPorId(int id);
     Task<IQueryable<Pedido>> ObterQueryPedidos();
     void Remover(Pedido pedido);
+    void Atualizar(Pedido pedido);
 }

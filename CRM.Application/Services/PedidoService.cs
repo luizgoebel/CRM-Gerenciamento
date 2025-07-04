@@ -71,8 +71,6 @@ public class PedidoService : IPedidoService
         this._pedidoRepository.Remover(pedido);
     }
 
-
-
     private Pedido RecuperarPedido(int id)
     {
         return this._pedidoRepository.ObterPorId(id).GetAwaiter().GetResult()
@@ -187,7 +185,7 @@ public class PedidoService : IPedidoService
 
         ValidarPedido(pedidoExistente, cliente);
 
-        // Lembre-se de implementar o método de atualização no repositório
-        throw new NotImplementedException("Implementar método de atualização de pedido no repositório.");
+        // Call the repository update method
+        _pedidoRepository.Atualizar(pedidoExistente);
     }
 }

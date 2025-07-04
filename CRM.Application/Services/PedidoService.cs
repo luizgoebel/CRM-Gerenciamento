@@ -5,46 +5,35 @@ using CRM.Application.Mappers;
 using CRM.Core.Interfaces;
 using CRM.Domain.Entidades;
 
-namespace CRM.Application.Services;
-
-public class PedidoService : IPedidoService
+public class PedidoService(IPedidoRepository pedidoRepository, IClienteRepository clienteRepository, IProdutoRepository produtoRepository) : IPedidoService
 {
-    private readonly IProdutoRepository _produtoRepository;
-    private readonly IPedidoRepository _pedidoRepository;
-    private readonly IClienteRepository _clienteRepository;
-
-    public PedidoService(IPedidoRepository pedidoRepository, IClienteRepository clienteRepository, IProdutoRepository produtoRepository)
-    {
-        this._pedidoRepository = pedidoRepository;
-        this._clienteRepository = clienteRepository;
-        this._produtoRepository = produtoRepository;
-    }
-
-   
+    private readonly IProdutoRepository _produtoRepository = produtoRepository;
+    private readonly IPedidoRepository _pedidoRepository = pedidoRepository;
+    private readonly IClienteRepository _clienteRepository = clienteRepository;
 
     public async Task<PaginacaoResultado<PedidoDto>> ObterPedidosPaginados(string filtro, int page, int pageSize)
     {
-        IQueryable<Pedido> query = await this._pedidoRepository.ObterQueryPedidos();
+        var query = await _pedidoRepository.ObterQueryPedidos();
 
         if (!string.IsNullOrWhiteSpace(filtro))
         {
-            filtro = filtro.ToLower();
-            query = query.Where(c => c.Cliente!.Nome.ToLower().Contains(filtro));
+            var texto = filtro.ToLower();
+            query = query.Where(c => c.Cliente!.Nome.ToLower().Contains(texto));
         }
 
-        query = query
-            .OrderByDescending(c => c.DataCriacao)
-            .ThenBy(c => c.Cliente!.Nome);
+        query = query.OrderByDescending(c => c.DataCriacao).ThenBy(c => c.Cliente!.Nome);
 
         if (!query.Any())
-            return new PaginacaoResultado<PedidoDto>();
+            return new();
 
-        int total = query.Count();
-        List<Pedido> pedidos = [.. query
+        var total = query.Count();
+
+        var pedidos = query
             .Skip((page - 1) * pageSize)
-            .Take(pageSize)];
+            .Take(pageSize)
+            .ToList();
 
-        List<PedidoDto> pedidosDto = [.. pedidos.Select(c => c.ToDto())];
+        var pedidosDto = pedidos.Select(c => c.ToDto()).ToList();
 
         return new PaginacaoResultado<PedidoDto>
         {
@@ -57,79 +46,39 @@ public class PedidoService : IPedidoService
 
     public async Task<PedidoDto> ObterPorId(int id)
     {
-        Pedido pedido = await this._pedidoRepository.ObterPorId(id)
-        ?? throw new ServiceException($"Pedido não encontrado.");
+        var pedido = await _pedidoRepository.ObterPorId(id)
+            ?? throw new ServiceException("Não foi possível localizar o pedido.");
 
-        PedidoDto pedidoDto = pedido.ToDto();
-
-        return pedidoDto;
+        return pedido.ToDto();
     }
 
     public void Remover(int id)
     {
-        Pedido pedido = RecuperarPedido(id);
-        this._pedidoRepository.Remover(pedido);
+        var pedido = _pedidoRepository.ObterPorId(id).GetAwaiter().GetResult()
+            ?? throw new ServiceException("Pedido não encontrado.");
+
+        _pedidoRepository.Remover(pedido);
     }
 
-    private Pedido RecuperarPedido(int id)
-    {
-        return this._pedidoRepository.ObterPorId(id).GetAwaiter().GetResult()
-           ?? throw new ServiceException($"Pedido não encontrado.");
-    }
-
-    private void ValidarPedido(Pedido pedido, Cliente cliente)
-    {
-        if (pedido.Itens == null || pedido.Itens.Count < 1)
-            throw new ServiceException("Pedido deve conter pelo menos um item.");
-
-        var produtosDuplicados = pedido.Itens
-            .GroupBy(i => i.ProdutoId)
-            .Where(g => g.Count() > 1)
-            .Select(g => g.Key)
-            .ToList();
-        if (produtosDuplicados.Any())
-            throw new ServiceException("Não é permitido adicionar o mesmo produto mais de uma vez no pedido.");
-
-        if (!cliente.CadastroCompleto())
-            throw new ServiceException("Cadastro incompleto. Atualize o cadastro do cliente para prosseguir com o pedido.");
-
-        decimal somaItens = pedido.Itens.Sum(i => i.Subtotal);
-        if (Math.Abs(pedido.ValorTotal - somaItens) > 0.01m)
-            throw new ServiceException("O valor total do pedido está inconsistente com a soma dos subtotais dos itens.");
-    }
     public void CriarPedido(PedidoDto pedidoDto)
     {
-        if (pedidoDto == null) throw new ServiceException("Verificar dados do pedido.");
-        if (pedidoDto.ClienteId <= 0) throw new ServiceException("Não há cliente vinculado ao pedido.");
+        if (pedidoDto == null || pedidoDto.ClienteId <= 0)
+            throw new ServiceException("Pedido inválido. Verifique os dados informados.");
 
-        bool pedidoExiste = pedidoDto.Id.HasValue && pedidoDto.Id > 0;
-        if (pedidoExiste)
-        {
-            AtualizarPedidoExistente(pedidoDto);
-        }
+        if (pedidoDto.Id.HasValue && pedidoDto.Id > 0)
+            AtualizarPedido(pedidoDto);
         else
-        {
-            CriarNovoPedido(pedidoDto);
-        }
+            CriarPedidoNovo(pedidoDto);
     }
 
-    private void CriarNovoPedido(PedidoDto pedidoDto)
+    private void CriarPedidoNovo(PedidoDto dto)
     {
-        var cliente = _clienteRepository.ObterPorId((int)pedidoDto.ClienteId!).GetAwaiter().GetResult()
+        var cliente = _clienteRepository.ObterPorId((int)dto.ClienteId!).GetAwaiter().GetResult()
             ?? throw new ServiceException("Cliente não encontrado.");
 
-        var pedido = pedidoDto.ToModel();
+        var pedido = dto.ToModel();
 
-        List<int> idsSelecionados = pedido.Itens.Select(i => i.ProdutoId).Distinct().ToList();
-        List<Produto> produtos = _produtoRepository.ListarTodos().Where(x => idsSelecionados.Contains(x.Id)).ToList();
-
-        foreach (PedidoItem pedidoItem in pedido.Itens)
-        {
-            Produto? produto = produtos.FirstOrDefault(x => x.Id == pedidoItem.ProdutoId);
-            if (produto != null)
-                pedidoItem.AtualizarValores(produto);
-        }
-
+        AtualizarItensComDadosProduto(pedido.Itens);
         pedido.AtualizarValorTotal();
 
         ValidarPedido(pedido, cliente);
@@ -137,55 +86,74 @@ public class PedidoService : IPedidoService
         _pedidoRepository.CriarPedido(pedido);
     }
 
-    private void AtualizarPedidoExistente(PedidoDto pedidoDto)
+    private void AtualizarPedido(PedidoDto dto)
     {
-        Pedido pedidoExistente = _pedidoRepository.ObterPorId((int)pedidoDto.Id!).GetAwaiter().GetResult()
+        var pedido = _pedidoRepository.ObterPorId((int)dto.Id!).GetAwaiter().GetResult()
             ?? throw new ServiceException("Pedido não encontrado para atualização.");
 
-        var cliente = _clienteRepository.ObterPorId((int)pedidoDto.ClienteId!).GetAwaiter().GetResult()
+        var cliente = _clienteRepository.ObterPorId((int)dto.ClienteId!).GetAwaiter().GetResult()
             ?? throw new ServiceException("Cliente não encontrado.");
 
-        // Mapeia os itens do DTO para um dicionário por ProdutoId
-        var itensDto = pedidoDto.ToModel().Itens;
-        var itensExistentes = pedidoExistente.Itens;
+        var itensDto = dto.ToModel().Itens;
 
         foreach (var itemDto in itensDto)
         {
-            var itemExistente = itensExistentes.FirstOrDefault(i => i.ProdutoId == itemDto.ProdutoId);
-            if (itemExistente != null)
+            var existente = pedido.Itens.FirstOrDefault(i => i.ProdutoId == itemDto.ProdutoId);
+            if (existente != null)
             {
-                // Atualiza a quantidade e outros campos relevantes
-                itemExistente.Quantidade = itemDto.Quantidade;
-                itemExistente.AtualizarValores(itemExistente.Produto!);
+                existente.Quantidade = itemDto.Quantidade;
+                existente.AtualizarValores(existente.Produto!);
             }
             else
             {
-                // Adiciona novo item ao pedido
-                itensExistentes.Add(itemDto);
+                pedido.Itens.Add(itemDto);
             }
         }
 
-        // Remove itens que não estão mais no DTO
-        pedidoExistente.Itens = itensExistentes
-            .Where(i => itensDto.Any(dto => dto.ProdutoId == i.ProdutoId))
+        pedido.Itens = pedido.Itens
+            .Where(i => itensDto.Any(dtoItem => dtoItem.ProdutoId == i.ProdutoId))
             .ToList();
 
-        // Atualiza valores dos produtos
-        List<int> idsSelecionados = pedidoExistente.Itens.Select(i => i.ProdutoId).Distinct().ToList();
-        List<Produto> produtos = _produtoRepository.ListarTodos().Where(x => idsSelecionados.Contains(x.Id)).ToList();
+        AtualizarItensComDadosProduto(pedido.Itens);
+        pedido.AtualizarValorTotal();
 
-        foreach (PedidoItem pedidoItem in pedidoExistente.Itens)
+        ValidarPedido(pedido, cliente);
+
+        _pedidoRepository.Atualizar(pedido);
+    }
+
+    private void AtualizarItensComDadosProduto(List<PedidoItem> itens)
+    {
+        var ids = itens.Select(i => i.ProdutoId).Distinct().ToList();
+        var produtos = _produtoRepository.ListarTodos().Where(p => ids.Contains(p.Id)).ToList();
+
+        foreach (var item in itens)
         {
-            Produto? produto = produtos.FirstOrDefault(x => x.Id == pedidoItem.ProdutoId);
+            var produto = produtos.FirstOrDefault(p => p.Id == item.ProdutoId);
             if (produto != null)
-                pedidoItem.AtualizarValores(produto);
+                item.AtualizarValores(produto);
         }
+    }
 
-        pedidoExistente.AtualizarValorTotal();
+    private void ValidarPedido(Pedido pedido, Cliente cliente)
+    {
+        if (pedido.Itens == null || pedido.Itens.Count == 0)
+            throw new ServiceException("O pedido deve conter pelo menos um item.");
 
-        ValidarPedido(pedidoExistente, cliente);
+        var duplicados = pedido.Itens
+            .GroupBy(i => i.ProdutoId)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .ToList();
 
-        // Call the repository update method
-        _pedidoRepository.Atualizar(pedidoExistente);
+        if (duplicados.Any())
+            throw new ServiceException("Há produtos duplicados no pedido.");
+
+        if (!cliente.CadastroCompleto())
+            throw new ServiceException("O cadastro do cliente está incompleto. Atualize para prosseguir.");
+
+        var soma = pedido.Itens.Sum(i => i.Subtotal);
+        if (Math.Abs(pedido.ValorTotal - soma) > 0.01m)
+            throw new ServiceException("O valor total está incorreto com base nos itens informados.");
     }
 }

@@ -1,4 +1,4 @@
-name: Build & Test
+name: Build, Test & Deploy to Google Cloud
 
 on:
   push:
@@ -9,9 +9,18 @@ on:
     branches:
       - development
 
+env:
+  PROJECT_ID: crm-api-465004 # Seu Project ID do Google Cloud
+  SERVICE_NAME: crm-api # O nome que você quer para seu serviço no Cloud Run
+  REGION: southamerica-east3 # Região onde o Cloud Run será implantado (ex: us-central1, southamerica-east1)
+
 jobs:
-  build-and-test:
+  build-test-and-deploy:
     runs-on: ubuntu-latest
+    
+    permissions:
+      contents: 'read' # Permissão para checkout do código
+      id-token: 'write' # Permissão para autenticação no Google Cloud (OIDC)
 
     steps:
       - name: Checkout código
@@ -30,3 +39,44 @@ jobs:
 
       - name: Testar
         run: dotnet test --no-build --verbosity normal --configuration Release
+
+      # --- Início das etapas de Implantação no Google Cloud ---
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v1
+        with:
+          # Usamos as credenciais da Service Account que você armazenou
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          # Especificar os escopos necessários para build/push de imagem e deploy no Cloud Run
+          # cloud-platform dá acesso amplo. Para maior granularidade, use escopos específicos.
+          scopes: '["https://www.googleapis.com/auth/cloud-platform"]'
+          # É bom explicitar o project_id
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Configure Docker to use Google Cloud Registry
+        run: gcloud auth configure-docker --quiet
+
+      - name: Build and Push Docker image to GCR
+        run: |
+          docker build -t gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }} .
+          docker push gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+        # O github.sha usa o ID do commit como tag da imagem, garantindo exclusividade
+
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v1
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          image: gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+          region: ${{ env.REGION }}
+          # Adicione outras configurações do Cloud Run se necessário, por exemplo:
+          # env_vars: |
+          #   ASPNETCORE_ENVIRONMENT=Production
+          #   DB_CONNECTION_STRING=${{ secrets.DB_CONNECTION_STRING }}
+          # traffic: '100' # Envia todo o tráfego para a nova revisão
+          # metadata: |
+          #   annotations:
+          #     run.googleapis.com/ingress: 'all' # Ou 'internal', se for um serviço interno
+          # concurrency: 80 # Concorrência máxima para cada instância
+
+      # --- Fim das etapas de Implantação no Google Cloud ---

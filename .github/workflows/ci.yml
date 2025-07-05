@@ -73,6 +73,9 @@ jobs:
           # Usa o caminho completo da imagem no Artifact Registry, com a região us-central1
           image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
           region: ${{ env.REGION }} # O deploy do Cloud Run também será em us-central1
+          env_vars: |
+            CONNECTION_STRING=Server=/cloudsql/${{ env.PROJECT_ID }}:${{ env.REGION }}:crm;User Id=root;Password=root;Database=crmapi;
+          cloudsql_instances: ${{ env.PROJECT_ID }}:${{ env.REGION }}:crm
           # ... (suas variáveis de ambiente e outras configurações)
 
       # --- Fim das etapas de Implantação no Google Cloud ---

@@ -59,6 +59,7 @@ public class Startup
                 {
                     m.MigrationsAssembly("CRM.Infrastructure");
                     m.CommandTimeout(50000);
+                    m.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
                 })
             .LogTo(s => System.Diagnostics.Debug.WriteLine(s))
             .EnableDetailedErrors(true)
@@ -66,6 +67,7 @@ public class Startup
             options.UseLazyLoadingProxies();
         });
     }
+
 
     private void AdicionarSwagger(IServiceCollection services)
     {

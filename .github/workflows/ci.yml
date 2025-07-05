@@ -11,16 +11,18 @@ on:
 
 env:
   PROJECT_ID: crm-api-465004
-  SERVICE_NAME: crm-api # Ou outro nome que você definir para seu serviço no Cloud Run
-  REGION: southamerica-east1 # Região onde o Cloud Run será implantado (Ex: southamerica-east1 para SP)
+  SERVICE_NAME: crm-api # O nome do seu serviço Cloud Run
+  REGION: southamerica-east1 # Região onde o Cloud Run e o Artifact Registry estão
+  # Usaremos 'api-repo' como o nome do repositório no Artifact Registry
+  AR_REPO_NAME: api-repo # <-- Nome do seu repositório existente
 
 jobs:
   build-test-and-deploy:
     runs-on: ubuntu-latest
     
     permissions:
-      contents: 'read' # Permissão para checkout do código
-      id-token: 'write' # Permissão para autenticação no Google Cloud (OIDC)
+      contents: 'read'
+      id-token: 'write'
 
     steps:
       - name: Checkout código
@@ -50,30 +52,38 @@ jobs:
           scopes: '["https://www.googleapis.com/auth/cloud-platform"]'
           project_id: ${{ env.PROJECT_ID }}
 
-      - name: Configure Docker to use Google Cloud Registry
-        run: gcloud auth configure-docker --quiet
+      - name: Configure Docker to use Google Cloud Artifact Registry
+        # Configura o Docker para autenticar no Artifact Registry na sua região
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
-      - name: Build and Push Docker image to GCR
+      - name: Build and Push Docker image to Artifact Registry
         run: |
-          # ATENÇÃO AQUI: Especificamos o caminho do Dockerfile e mantemos o contexto na raiz (.)
-          docker build -f CRM.API/Dockerfile -t gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }} .
-          docker push gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+          # Define o caminho completo da imagem no Artifact Registry
+          # Formato: LOCATION-docker.pkg.dev/PROJECT_ID/REPO_NAME/IMAGE_NAME:TAG
+          AR_IMAGE_PATH="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}"
+          
+          # Constrói a imagem localmente (sem a tag completa do AR ainda)
+          # Isso é para o caso de o Dockerfile precisar de um contexto específico
+          docker build -f CRM.API/Dockerfile -t ${AR_IMAGE_PATH} . 
+          
+          # Faz o push da imagem já com a tag do Artifact Registry
+          docker push ${AR_IMAGE_PATH}
 
       - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v1
         with:
           service: ${{ env.SERVICE_NAME }}
-          image: gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+          # Usa o caminho completo da imagem no Artifact Registry
+          image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
           region: ${{ env.REGION }}
           # Exemplo de variáveis de ambiente - Adicione as suas aqui!
           # env_vars: |
           #   ASPNETCORE_ENVIRONMENT=Production
-          #   ConnectionStrings__DefaultConnection=${{ secrets.DB_CONNECTION_STRING }} # Exemplo de segredo do GitHub para string de conexão
-          #   MySecretApiKey=${{ secrets.MY_API_KEY }} 
-          # traffic: '100' # Envia todo o tráfego para a nova revisão
+          #   ConnectionStrings__DefaultConnection=${{ secrets.DB_CONNECTION_STRING }} 
+          # traffic: '100'
           # metadata: |
           #   annotations:
-          #     run.googleapis.com/ingress: 'all' # Ou 'internal', se for um serviço interno
-          # concurrency: 80 # Concorrência máxima para cada instância
+          #     run.googleapis.com/ingress: 'all'
+          # concurrency: 80
 
       # --- Fim das etapas de Implantação no Google Cloud ---

@@ -10,9 +10,9 @@ on:
       - development
 
 env:
-  PROJECT_ID: crm-api-465004 # Seu Project ID do Google Cloud
-  SERVICE_NAME: crm-api # O nome que você quer para seu serviço no Cloud Run
-  REGION: southamerica-east3 # Região onde o Cloud Run será implantado (ex: us-central1, southamerica-east1)
+  PROJECT_ID: crm-api-465004
+  SERVICE_NAME: crm-api # Ou outro nome que você definir para seu serviço no Cloud Run
+  REGION: southamerica-east1 # Região onde o Cloud Run será implantado (Ex: southamerica-east1 para SP)
 
 jobs:
   build-test-and-deploy:
@@ -46,12 +46,8 @@ jobs:
         id: auth
         uses: google-github-actions/auth@v1
         with:
-          # Usamos as credenciais da Service Account que você armazenou
           credentials_json: ${{ secrets.GCP_SA_KEY }}
-          # Especificar os escopos necessários para build/push de imagem e deploy no Cloud Run
-          # cloud-platform dá acesso amplo. Para maior granularidade, use escopos específicos.
           scopes: '["https://www.googleapis.com/auth/cloud-platform"]'
-          # É bom explicitar o project_id
           project_id: ${{ env.PROJECT_ID }}
 
       - name: Configure Docker to use Google Cloud Registry
@@ -59,9 +55,9 @@ jobs:
 
       - name: Build and Push Docker image to GCR
         run: |
-          docker build -t gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }} .
+          # ATENÇÃO AQUI: Especificamos o caminho do Dockerfile e mantemos o contexto na raiz (.)
+          docker build -f CRM.API/Dockerfile -t gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }} .
           docker push gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
-        # O github.sha usa o ID do commit como tag da imagem, garantindo exclusividade
 
       - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v1
@@ -69,10 +65,11 @@ jobs:
           service: ${{ env.SERVICE_NAME }}
           image: gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
           region: ${{ env.REGION }}
-          # Adicione outras configurações do Cloud Run se necessário, por exemplo:
+          # Exemplo de variáveis de ambiente - Adicione as suas aqui!
           # env_vars: |
           #   ASPNETCORE_ENVIRONMENT=Production
-          #   DB_CONNECTION_STRING=${{ secrets.DB_CONNECTION_STRING }}
+          #   ConnectionStrings__DefaultConnection=${{ secrets.DB_CONNECTION_STRING }} # Exemplo de segredo do GitHub para string de conexão
+          #   MySecretApiKey=${{ secrets.MY_API_KEY }} 
           # traffic: '100' # Envia todo o tráfego para a nova revisão
           # metadata: |
           #   annotations:

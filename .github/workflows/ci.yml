@@ -12,9 +12,8 @@ on:
 env:
   PROJECT_ID: crm-api-465004
   SERVICE_NAME: crm-api # O nome do seu serviço Cloud Run
-  REGION: southamerica-east1 # Região onde o Cloud Run e o Artifact Registry estão
-  # Usaremos 'api-repo' como o nome do repositório no Artifact Registry
-  AR_REPO_NAME: api-repo # <-- Nome do seu repositório existente
+  REGION: us-central1 # <--- AGORA CORRESPONDE À REGIÃO DO SEU REPOSITÓRIO 'api-repo'
+  AR_REPO_NAME: api-repo # Nome do seu repositório, conforme a imagem
 
 jobs:
   build-test-and-deploy:
@@ -53,17 +52,15 @@ jobs:
           project_id: ${{ env.PROJECT_ID }}
 
       - name: Configure Docker to use Google Cloud Artifact Registry
-        # Configura o Docker para autenticar no Artifact Registry na sua região
+        # Configura o Docker para autenticar no Artifact Registry na região us-central1
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
       - name: Build and Push Docker image to Artifact Registry
         run: |
-          # Define o caminho completo da imagem no Artifact Registry
-          # Formato: LOCATION-docker.pkg.dev/PROJECT_ID/REPO_NAME/IMAGE_NAME:TAG
+          # Define o caminho completo da imagem no Artifact Registry, usando a região us-central1
           AR_IMAGE_PATH="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}"
           
-          # Constrói a imagem localmente (sem a tag completa do AR ainda)
-          # Isso é para o caso de o Dockerfile precisar de um contexto específico
+          # Constrói a imagem localmente
           docker build -f CRM.API/Dockerfile -t ${AR_IMAGE_PATH} . 
           
           # Faz o push da imagem já com a tag do Artifact Registry
@@ -73,17 +70,9 @@ jobs:
         uses: google-github-actions/deploy-cloudrun@v1
         with:
           service: ${{ env.SERVICE_NAME }}
-          # Usa o caminho completo da imagem no Artifact Registry
+          # Usa o caminho completo da imagem no Artifact Registry, com a região us-central1
           image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
-          region: ${{ env.REGION }}
-          # Exemplo de variáveis de ambiente - Adicione as suas aqui!
-          # env_vars: |
-          #   ASPNETCORE_ENVIRONMENT=Production
-          #   ConnectionStrings__DefaultConnection=${{ secrets.DB_CONNECTION_STRING }} 
-          # traffic: '100'
-          # metadata: |
-          #   annotations:
-          #     run.googleapis.com/ingress: 'all'
-          # concurrency: 80
+          region: ${{ env.REGION }} # O deploy do Cloud Run também será em us-central1
+          # ... (suas variáveis de ambiente e outras configurações)
 
       # --- Fim das etapas de Implantação no Google Cloud ---

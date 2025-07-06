@@ -11,9 +11,9 @@ on:
 
 env:
   PROJECT_ID: crm-api-465004
-  SERVICE_NAME: crm-api # O nome do seu serviço Cloud Run
-  REGION: us-central1 # <--- MANTENDO US-CENTRAL1 CONFORME SEU REPOSITÓRIO AR
-  AR_REPO_NAME: api-repo # Nome do seu repositório, conforme a imagem
+  SERVICE_NAME: crm-api
+  REGION: us-central1 # <-- CONSISTENTE COM SEU ARTIFACT REGISTRY E CLOUD RUN EXISTENTES
+  AR_REPO_NAME: api-repo # <-- SEU REPOSITÓRIO ATUAL EM US-CENTRAL1
 
 jobs:
   build-test-and-deploy:
@@ -25,7 +25,7 @@ jobs:
 
     steps:
       - name: Checkout código
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -45,38 +45,29 @@ jobs:
 
       - name: Authenticate to Google Cloud
         id: auth
-        uses: google-github-actions/auth@v1
+        uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-          scopes: '["https://www.googleapis.com/auth/cloud-platform"]'
-          project_id: ${{ env.PROJECT_ID }}
+          workload_identity_provider: 'projects/${{ env.PROJECT_ID }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+          service_account: 'github-actions@${{ env.PROJECT_ID }}.iam.gserviceaccount.com'
 
       - name: Configure Docker to use Google Cloud Artifact Registry
-        # Configura o Docker para autenticar no Artifact Registry na região us-central1
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
       - name: Build and Push Docker image to Artifact Registry
         run: |
-          # Define o caminho completo da imagem no Artifact Registry, usando a região us-central1
           AR_IMAGE_PATH="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}"
-          
-          # Constrói a imagem localmente
           docker build -f CRM.API/Dockerfile -t ${AR_IMAGE_PATH} . 
-          
-          # Faz o push da imagem já com a tag do Artifact Registry
           docker push ${AR_IMAGE_PATH}
 
       - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v1
         with:
           service: ${{ env.SERVICE_NAME }}
-          # Usa o caminho completo da imagem no Artifact Registry, com a região us-central1
           image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
-          region: ${{ env.REGION }} # O deploy do Cloud Run também será em us-central1
-          # --- LINHAS REMOVIDAS AQUI ---
-          # env_vars: |
-          #   CONNECTION_STRING=Server=/cloudsql/${{ env.PROJECT_ID }}:${{ env.REGION }}:crm;User Id=root;Password=root;Database=crmapi;
-          # cloudsql_instances: ${{ env.PROJECT_ID }}:${{ env.REGION }}:crm
-          # --- FIM DAS LINHAS REMOVIDAS ---
-
-      # --- Fim das etapas de Implantação no Google Cloud ---
+          region: ${{ env.REGION }} # O deploy do Cloud Run será em us-central1
+          # --- CONFIGURAÇÃO DA STRING DE CONEXÃO COM IP PÚBLICO E SECRET MANAGER ---
+          env_vars: |
+            ConnectionStrings__DefaultConnection=Server=35.188.19.254;Port=3306;Database=crmapi;Uid=api_user;Pwd=${{secret:DB_PASSWORD}};SslMode=Required;
+          # Nenhuma configuração de cloudsql_instances ou vpc_connector é necessária para IP público
+          allow_unauthenticated: true # Se sua API for pública
+          # --- Fim da configuração ---

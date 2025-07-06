@@ -12,7 +12,7 @@ on:
 env:
   PROJECT_ID: crm-api-465004
   SERVICE_NAME: crm-api # O nome do seu serviço Cloud Run
-  REGION: us-central1 # <--- AGORA CORRESPONDE À REGIÃO DO SEU REPOSITÓRIO 'api-repo'
+  REGION: us-central1 # <--- MANTENDO US-CENTRAL1 CONFORME SEU REPOSITÓRIO AR
   AR_REPO_NAME: api-repo # Nome do seu repositório, conforme a imagem
 
 jobs:
@@ -73,9 +73,10 @@ jobs:
           # Usa o caminho completo da imagem no Artifact Registry, com a região us-central1
           image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
           region: ${{ env.REGION }} # O deploy do Cloud Run também será em us-central1
-          env_vars: |
-            CONNECTION_STRING=Server=/cloudsql/${{ env.PROJECT_ID }}:${{ env.REGION }}:crm;User Id=root;Password=root;Database=crmapi;
-          cloudsql_instances: ${{ env.PROJECT_ID }}:${{ env.REGION }}:crm
-          # ... (suas variáveis de ambiente e outras configurações)
+          # --- LINHAS REMOVIDAS AQUI ---
+          # env_vars: |
+          #   CONNECTION_STRING=Server=/cloudsql/${{ env.PROJECT_ID }}:${{ env.REGION }}:crm;User Id=root;Password=root;Database=crmapi;
+          # cloudsql_instances: ${{ env.PROJECT_ID }}:${{ env.REGION }}:crm
+          # --- FIM DAS LINHAS REMOVIDAS ---
 
       # --- Fim das etapas de Implantação no Google Cloud ---

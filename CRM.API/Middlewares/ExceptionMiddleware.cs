@@ -27,15 +27,31 @@ public class ExceptionMiddleware
         }
         catch (ServiceException ex)
         {
+            // Logar a ServiceException com seus detalhes
+            _logger.LogError(ex, "ServiceException capturada: {ErrorMessage}", ex.Message);
             await HandleExceptionAsync(httpContext, ex, ServiceExceptionStatusCode, ex.ObjetoErro);
         }
         catch (DomainException ex)
         {
+            // Logar a DomainException com seus detalhes
+            _logger.LogError(ex, "DomainException capturada: {ErrorMessage}", ex.Message);
             await HandleExceptionAsync(httpContext, ex, DomainExceptionStatusCode, ex.ObjetoErro);
         }
-        catch (Exception ex)
+        catch (Exception ex) // <--- Esta é a seção que precisa da alteração
         {
-            _logger.LogError(ex, "Erro inesperado do sistema.");
+            // Logar a exceção completa, incluindo a InnerException, se existir
+            _logger.LogError(ex, "Erro inesperado do sistema. Detalhes completos da exceção: {ErrorMessage}", ex.Message);
+
+            // Adicione este bloco para logar a InnerException especificamente
+            if (ex.InnerException != null)
+            {
+                _logger.LogError(ex.InnerException, "Inner Exception: {InnerErrorMessage}", ex.InnerException.Message);
+            }
+
+            // Você pode adicionar mais detalhes aqui, como a stack trace, etc.
+            // _logger.LogError(ex, "Stack Trace: {StackTrace}", ex.StackTrace);
+
+
             await HandleExceptionAsync(httpContext, ex, ExceptionStatusCode);
         }
     }
@@ -49,11 +65,19 @@ public class ExceptionMiddleware
         context.Response.Clear();
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = statusCode;
-        await context.Response.WriteAsync(new DetalhesDoErro()
+
+        // Adicione um log aqui também para ver o que está sendo retornado ao cliente
+        _logger.LogWarning("Retornando erro {StatusCode} para o cliente: {Mensagem}", statusCode, exception.Message);
+
+        await context.Response.WriteAsync(JsonSerializer.Serialize(new DetalhesDoErro() // Use JsonSerializer.Serialize aqui
         {
             StatusCode = context.Response.StatusCode,
             Mensagem = exception.Message,
             ObjetoErro = objetoErro
-        }.ToString());
+        }, new JsonSerializerOptions
+        {
+            ReferenceHandler = ReferenceHandler.Preserve, // Opcional: para lidar com referências cíclicas se ObjetoErro for complexo
+            WriteIndented = true // Opcional: para JSON formatado nos logs
+        }));
     }
 }

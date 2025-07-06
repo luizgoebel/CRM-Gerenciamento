@@ -66,8 +66,12 @@ jobs:
           image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
           region: ${{ env.REGION }} # O deploy do Cloud Run será em us-central1
           # --- CONFIGURAÇÃO DA STRING DE CONEXÃO COM IP PÚBLICO E SECRET MANAGER ---
-          # Ajuste: Passar env_vars como uma string JSON válida, ou com aspas duplas e sem pipe
-          env_vars: "ConnectionStrings__DefaultConnection=Server=35.188.19.254;Port=3306;Database=crmapi;Uid=api_user;Pwd=${{secret:DB_PASSWORD}};SslMode=Required;"
+          # Ajuste: A senha será injetada como um segredo nomeado.
+          # A string de conexão será construída no Cloud Run, referenciando este segredo.
+          env_vars: |
+            ConnectionStrings__DefaultConnection=Server=35.188.19.254;Port=3306;Database=crmapi;Uid=api_user;Pwd=${{ secrets.DB_PASSWORD }};SslMode=Required;
+          # Se ${{ secrets.DB_PASSWORD }} não funcionar na string direta, tentaremos secret_volumes abaixo.
+          
           # Nenhuma configuração de cloudsql_instances ou vpc_connector é necessária para IP público
           allow_unauthenticated: true # Se sua API for pública
           # --- Fim da configuração ---

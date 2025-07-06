@@ -66,12 +66,13 @@ jobs:
         shell: bash
 
       - name: Deploy para Cloud Run
-        if: github.ref == 'refs/heads/master'
+        if: github.ref == 'refs/heads/main'
         uses: google-github-actions/deploy-cloudrun@v1
         with:
           service: ${{ env.SERVICE_NAME }}
           image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
           region: ${{ env.REGION }}
-          env_vars: ConnectionStrings__DefaultConnection=Server=35.188.19.254;Port=3306;Database=crmapi;Uid=api_user;Pwd=${{ secrets.BANCO_SENHA }};SslMode=None; ASPNETCORE_ENVIRONMENT=Production
-            ASPNETCORE_ENVIRONMENT=Production
+          env_vars: 
+            ConnectionStrings__DefaultConnection: 'Server=35.188.19.254;Port=3306;Database=crmapi;Uid=api_user;Pwd=${{ secrets.BANCO_SENHA }};SslMode=None;'
+            ASPNETCORE_ENVIRONMENT: "Production"
           allow_unauthenticated: true

@@ -1,0 +1,48 @@
+# A chave 'version' é opcional e pode ser omitida em versões recentes do Docker Compose
+# version: '3.8'
+
+services:
+  crm.api:
+    build:
+      context: . # Onde o Dockerfile está (raiz do repositório)
+      dockerfile: Dockerfile # Nome do Dockerfile na raiz
+    ports:
+      - "8080:8080" # CORRIGIDO: Mapeia a porta 8080 do host para a porta 8080 do contêiner da API
+    environment:
+      # Variáveis de ambiente para a conexão com o banco de dados MySQL
+      # O DB_HOST 'mysql.data' refere-se ao nome do serviço MySQL no Docker Compose
+      - DB_HOST=mysql.data
+      - DB_PORT=3306
+      - DB_USER=root # Esta linha DEVE permanecer aqui para a API se conectar como root
+      - DB_PASSWORD=root
+      - DB_NAME=crmapi
+      # Define o ambiente da aplicação ASP.NET Core para Development
+      - ASPNETCORE_ENVIRONMENT=Development
+      # Remova ou comente esta linha no Dockerfile se ela estiver a causar o Kestrel a escutar na 8080
+      # ENV ASPNETCORE_URLS=http://+:80
+    # Garante que o MySQL esteja saudável antes de iniciar a API
+    depends_on:
+      mysql.data:
+        condition: service_healthy
+    restart: always # Reinicia o contêiner automaticamente
+
+  mysql.data:
+    image: mysql:8.0 # Usa a imagem oficial do MySQL versão 8
+    environment:
+      # Variáveis para configurar o MySQL (usuário root e banco de dados)
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=crmapi
+      # REMOVIDO: - MYSQL_USER=root  <-- Esta linha CAUSA O ERRO de inicialização do MySQL
+    ports:
+      - "3306:3306" # Mapeia a porta 3306 do host para a porta 3306 do contêiner MySQL
+    volumes:
+      - mysql_data:/var/lib/mysql # Persiste os dados do MySQL em um volume nomeado
+    healthcheck: # Verifica se o serviço MySQL está pronto para aceitar conexões
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      timeout: 20s
+      retries: 10
+      interval: 5s
+    restart: always # Reinicia o contêiner automaticamente
+
+volumes:
+  mysql_data: # Define o volume nomeado para persistência dos dados do MySQL

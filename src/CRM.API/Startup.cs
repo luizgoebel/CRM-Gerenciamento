@@ -95,6 +95,24 @@ public class Startup
         if (env.IsDevelopment())
         {
             app.UseDeveloperExceptionPage();
+            using (var scope = app.ApplicationServices.CreateScope()) // Use app.ApplicationServices aqui
+            {
+                var services = scope.ServiceProvider;
+                try
+                {
+                    var dbContext = services.GetRequiredService<CrmDbContext>();
+                    // Aplica todas as migrações pendentes ao banco de dados
+                    dbContext.Database.Migrate();
+                    // Para logs visíveis no console do Docker
+                    Console.WriteLine("Migrações do banco de dados aplicadas com sucesso.");
+                }
+                catch (Exception ex)
+                {
+                    // Para logs visíveis no console do Docker
+                    Console.Error.WriteLine($"Ocorreu um erro ao aplicar as migrações do banco de dados: {ex.Message}");
+                    Console.Error.WriteLine(ex.StackTrace);
+                }
+            }
         }
         else
         {

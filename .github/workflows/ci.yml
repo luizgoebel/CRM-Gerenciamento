@@ -18,7 +18,7 @@ env:
   ECS_TASK_DEFINITION_NAME: ${{ secrets.ECS_TASK_DEFINITION_NAME }} # Ex: crm-api-task-definition
   ECS_CONTAINER_NAME: ${{ secrets.ECS_CONTAINER_NAME }} # Ex: crm-api-container (nome do contêiner na Task Definition)
   # Caminho base para o projeto API dentro do repositório
-  API_PROJECT_PATH: src/CRM.API # <--- NOVO: Define o caminho base do projeto API
+  API_PROJECT_PATH: src/crm.api # <--- AJUSTADO: Tentando minúsculas para o nome da pasta
 
 jobs:
   build-test-and-deploy:
@@ -31,6 +31,18 @@ jobs:
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
+
+      # --- NOVO PASSO PARA DEPURAR ---
+      - name: Listar arquivos para depuração
+        run: |
+          echo "Conteúdo da raiz do repositório:"
+          ls -F
+          echo "Conteúdo de src/:"
+          ls -F src/
+          echo "Conteúdo de src/crm.api/:"
+          ls -F src/crm.api/ || true # Use || true para não falhar se o diretório não existir
+        shell: bash
+      # --- FIM DO NOVO PASSO ---
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4

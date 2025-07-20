@@ -4,6 +4,9 @@ using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using System.Globalization;
+using System;
+using System.Threading;
+using System.Threading.Tasks; // Adicionado para Task.Delay
 
 namespace CRM.API;
 
@@ -68,7 +71,6 @@ public class Startup
         });
     }
 
-
     private void AdicionarSwagger(IServiceCollection services)
     {
         services.AddSwaggerGen(s =>
@@ -95,22 +97,39 @@ public class Startup
         if (env.IsDevelopment())
         {
             app.UseDeveloperExceptionPage();
-            using (var scope = app.ApplicationServices.CreateScope()) // Use app.ApplicationServices aqui
+
+            // Lógica para aplicar migrações automaticamente em ambiente de Desenvolvimento
+            // Implementa um retry para garantir que o banco de dados esteja pronto.
+            const int maxRetries = 5;
+            const int delayMilliseconds = 5000; // 5 segundos
+
+            for (int i = 0; i < maxRetries; i++)
             {
-                var services = scope.ServiceProvider;
-                try
+                using (var scope = app.ApplicationServices.CreateScope())
                 {
-                    var dbContext = services.GetRequiredService<CrmDbContext>();
-                    // Aplica todas as migrações pendentes ao banco de dados
-                    dbContext.Database.Migrate();
-                    // Para logs visíveis no console do Docker
-                    Console.WriteLine("Migrações do banco de dados aplicadas com sucesso.");
-                }
-                catch (Exception ex)
-                {
-                    // Para logs visíveis no console do Docker
-                    Console.Error.WriteLine($"Ocorreu um erro ao aplicar as migrações do banco de dados: {ex.Message}");
-                    Console.Error.WriteLine(ex.StackTrace);
+                    var services = scope.ServiceProvider;
+                    try
+                    {
+                        var dbContext = services.GetRequiredService<CrmDbContext>();
+                        dbContext.Database.Migrate();
+                        Console.WriteLine("Migrações do banco de dados aplicadas com sucesso.");
+                        break; // Sai do loop se as migrações forem aplicadas
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.Error.WriteLine($"Tentativa {i + 1}/{maxRetries}: Ocorreu um erro ao aplicar as migrações do banco de dados: {ex.Message}");
+                        Console.Error.WriteLine(ex.StackTrace);
+
+                        if (i < maxRetries - 1)
+                        {
+                            Console.WriteLine($"Aguardando {delayMilliseconds / 1000} segundos antes de tentar novamente...");
+                            Thread.Sleep(delayMilliseconds); // Espera antes da próxima tentativa
+                        }
+                        else
+                        {
+                            Console.Error.WriteLine("Todas as tentativas de aplicar migrações falharam. A aplicação pode não funcionar corretamente.");
+                        }
+                    }
                 }
             }
         }
@@ -125,7 +144,7 @@ public class Startup
         app.UseSwaggerUI(c =>
         {
             c.SwaggerEndpoint("/swagger/v1/swagger.json", "API do CRM v1");
-            c.RoutePrefix = "docs"; // Agora: https://localhost:7095/swagger
+            c.RoutePrefix = "docs";
         });
 
         app.UseRouting();

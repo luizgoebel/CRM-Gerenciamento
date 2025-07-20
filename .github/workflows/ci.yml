@@ -1,96 +1,99 @@
-    name: Deploy API .NET para AWS ECS Fargate
+name: Deploy API .NET para AWS ECS Fargate
 
-    on:
-      push:
-        branches:
-          - development
-          - master
-      pull_request:
-        branches:
-          - development
+on:
+  push:
+    branches:
+      - development
+      - master
+  pull_request:
+    branches:
+      - development
 
-    env:
-      # Variáveis de ambiente que serão usadas no workflow
-      AWS_REGION: ${{ secrets.AWS_REGION }} # Ex: us-east-2
-      ECR_REPOSITORY_NAME: ${{ secrets.ECR_REPOSITORY_NAME }} # Ex: crm-api-repo
-      ECS_CLUSTER_NAME: ${{ secrets.ECS_CLUSTER_NAME }} # Ex: crm-cluster
-      ECS_SERVICE_NAME: ${{ secrets.ECS_SERVICE_NAME }} # Ex: crm-api-service
-      ECS_TASK_DEFINITION_NAME: ${{ secrets.ECS_TASK_DEFINITION_NAME }} # Ex: crm-api-task-definition
-      ECS_CONTAINER_NAME: ${{ secrets.ECS_CONTAINER_NAME }} # Ex: crm-api-container (nome do contêiner na Task Definition)
+env:
+  # Variáveis de ambiente que serão usadas no workflow
+  AWS_REGION: ${{ secrets.AWS_REGION }} # Ex: us-east-2
+  ECR_REPOSITORY_NAME: ${{ secrets.ECR_REPOSITORY_NAME }} # Ex: crm-api-repo
+  ECS_CLUSTER_NAME: ${{ secrets.ECS_CLUSTER_NAME }} # Ex: crm-cluster
+  ECS_SERVICE_NAME: ${{ secrets.ECS_SERVICE_NAME }} # Ex: crm-api-service
+  ECS_TASK_DEFINITION_NAME: ${{ secrets.ECS_TASK_DEFINITION_NAME }} # Ex: crm-api-task-definition
+  ECS_CONTAINER_NAME: ${{ secrets.ECS_CONTAINER_NAME }} # Ex: crm-api-container (nome do contêiner na Task Definition)
+  # Caminho base para o projeto API dentro do repositório
+  API_PROJECT_PATH: src/CRM.API # <--- NOVO: Define o caminho base do projeto API
 
-    jobs:
-      build-test-and-deploy:
-        runs-on: ubuntu-latest
+jobs:
+  build-test-and-deploy:
+    runs-on: ubuntu-latest
 
-        permissions:
-          contents: 'read'
-          id-token: 'write' # Necessário para o OIDC
+    permissions:
+      contents: 'read'
+      id-token: 'write' # Necessário para o OIDC
 
-        steps:
-          - name: Checkout código
-            uses: actions/checkout@v4
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
 
-          - name: Setup .NET SDK
-            uses: actions/setup-dotnet@v4
-            with:
-              dotnet-version: '8.0.x' # Certifique-se de que corresponde à sua versão .NET
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x' # Certifique-se de que corresponde à sua versão .NET
 
-          - name: Restaurar dependências
-            # O caminho é relativo à raiz do repositório
-            run: dotnet restore src/CRM.API/CRM.API.csproj
+      - name: Restaurar dependências
+        # Usa a variável API_PROJECT_PATH para referenciar o .csproj
+        run: dotnet restore ${{ env.API_PROJECT_PATH }}/CRM.API.csproj
 
-          - name: Build da API
-            # O caminho é relativo à raiz do repositório
-            run: dotnet build src/CRM.API/CRM.API.csproj --no-restore --configuration Release
+      - name: Build da API
+        # Usa a variável API_PROJECT_PATH para referenciar o .csproj
+        run: dotnet build ${{ env.API_PROJECT_PATH }}/CRM.API.csproj --no-restore --configuration Release
 
-          - name: Testar API (se houver testes unitários)
-            # Substitua 'src/CRM.API.Tests/CRM.API.Tests.csproj' pelo caminho do seu projeto de testes
-            # O caminho é relativo à raiz do repositório
-            run: dotnet test src/CRM.API.Tests/CRM.API.Tests.csproj --no-build --verbosity normal --configuration Release
-            continue-on-error: true # Permite que o workflow continue mesmo se os testes falharem
+      - name: Testar API (se houver testes unitários)
+        # Substitua 'src/CRM.API.Tests/CRM.API.Tests.csproj' pelo caminho do seu projeto de testes
+        # O caminho é relativo à raiz do repositório
+        # Adapte este caminho se o seu projeto de testes estiver em outro lugar
+        run: dotnet test ${{ env.API_PROJECT_PATH }}.Tests/CRM.API.Tests.csproj --no-build --verbosity normal --configuration Release
+        continue-on-error: true # Permite que o workflow continue mesmo se os testes falharem
 
-          - name: Configurar credenciais AWS (via OIDC)
-            uses: aws-actions/configure-aws-credentials@v4
-            with:
-              role-to-assume: ${{ secrets.AWS_ROLE_ARN }} # O ARN do IAM Role que o GitHub Actions irá assumir
-              aws-region: ${{ env.AWS_REGION }}
+      - name: Configurar credenciais AWS (via OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }} # O ARN do IAM Role que o GitHub Actions irá assumir
+          aws-region: ${{ env.AWS_REGION }}
 
-          - name: Login no Amazon ECR
-            id: login-ecr
-            uses: aws-actions/amazon-ecr-login@v2
+      - name: Login no Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
-          - name: Build e Push da imagem Docker para ECR
-            env:
-              ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-              IMAGE_TAG: ${{ github.sha }} # Usa o SHA do commit como tag da imagem
-            run: |
-              # O Dockerfile da API está em 'CRM.API/Dockerfile' e o contexto é a raiz do repositório
-              docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_NAME:$IMAGE_TAG -f CRM.API/Dockerfile .
-              docker push $ECR_REGISTRY/$ECR_REPOSITORY_NAME:$IMAGE_TAG
-            shell: bash
+      - name: Build e Push da imagem Docker para ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }} # Usa o SHA do commit como tag da imagem
+        run: |
+          # O Dockerfile da API agora é referenciado pelo caminho completo a partir da raiz do repositório
+          # O contexto de build é a raiz do repositório (.), o que é uma boa prática
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_NAME:$IMAGE_TAG -f ${{ env.API_PROJECT_PATH }}/Dockerfile .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY_NAME:$IMAGE_TAG
+        shell: bash
 
-          - name: Deploy para Amazon ECS Fargate
-            uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-            with:
-              task-definition: ${{ env.ECS_TASK_DEFINITION_NAME }}
-              service: ${{ env.ECS_SERVICE_NAME }}
-              cluster: ${{ env.ECS_CLUSTER_NAME }}
-              wait-for-service-stability: true
-              # Variáveis de ambiente para a Task Definition (sobrescrevem as da Task Definition)
-              # Isso é útil para passar segredos como senhas de BD que não devem estar no Dockerfile
-              # ou para ajustar configurações específicas do ambiente de deploy.
-              environment-variables: |
-                DB_HOST=${{ secrets.DB_HOST }}
-                DB_PORT=${{ secrets.DB_PORT }}
-                DB_USER=${{ secrets.DB_USER }}
-                DB_NAME=${{ secrets.DB_NAME }}
-                DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-                ASPNETCORE_ENVIRONMENT=Production # Em produção, use Production
+      - name: Deploy para Amazon ECS Fargate
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ env.ECS_TASK_DEFINITION_NAME }}
+          service: ${{ env.ECS_SERVICE_NAME }}
+          cluster: ${{ env.ECS_CLUSTER_NAME }}
+          wait-for-service-stability: true
+          # Variáveis de ambiente para a Task Definition (sobrescrevem as da Task Definition)
+          # Isso é útil para passar segredos como senhas de BD que não devem estar no Dockerfile
+          # ou para ajustar configurações específicas do ambiente de deploy.
+          environment-variables: |
+            DB_HOST=${{ secrets.DB_HOST }}
+            DB_PORT=${{ secrets.DB_PORT }}
+            DB_USER=${{ secrets.DB_USER }}
+            DB_NAME=${{ secrets.DB_NAME }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            ASPNETCORE_ENVIRONMENT=Production # Em produção, use Production
 
-              # Opcional: Se você quiser atualizar a imagem na Task Definition com a nova tag
-              image: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY_NAME }}:${{ env.IMAGE_TAG }}
+          # Opcional: Se você quiser atualizar a imagem na Task Definition com a nova tag
+          image: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY_NAME }}:${{ env.IMAGE_TAG }}
 
-              # Opcional: Se você precisar de um arquivo de definição de tarefa JSON customizado
-              # task-definition-template: task-definition.json
-              # container-name: ${{ env.ECS_CONTAINER_NAME }} # O nome do contêiner dentro do JSON da Task Definition
-    
+          # Opcional: Se você precisar de um arquivo de definição de tarefa JSON customizado
+          # task-definition-template: task-definition.json
+          # container-name: ${{ env.ECS_CONTAINER_NAME }} # O nome do contêiner dentro do JSON da Task Definition

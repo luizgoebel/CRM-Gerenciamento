@@ -119,5 +119,6 @@ jobs:
           eb init ${{ env.EB_APPLICATION_NAME }} --region ${{ env.AWS_REGION }} --platform docker --no-verify-ssl
           eb use ${{ env.EB_ENVIRONMENT_NAME }}
           # Realiza o deploy do pacote .zip
-          eb deploy --version ${{ github.sha }} --label ${{ github.sha }}
+          # Usamos apenas --label para criar uma nova versão com o SHA do commit
+          eb deploy --label ${{ github.sha }}
         shell: bash

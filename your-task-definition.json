@@ -1,0 +1,58 @@
+{
+  "family": "crm-api-task-definition",
+  "networkMode": "awsvpc",
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::679625722040:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::679625722040:role/ecsTaskRole",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "containerDefinitions": [
+    {
+      "name": "crm-api-container",
+      "image": "REPLACE_ME_BY_RENDER_ACTION",
+      "portMappings": [
+        {
+          "containerPort": 80,
+          "hostPort": 80,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "ASPNETCORE_ENVIRONMENT",
+          "value": "Production"
+        },
+        {
+          "name": "DB_HOST",
+          "value": "crm-mysql-db.c12cgwouoxo0.us-east-2.rds.amazonaws.com"
+        },
+        {
+          "name": "DB_PORT",
+          "value": "3306"
+        },
+        {
+          "name": "DB_USER",
+          "value": "admin"
+        },
+        {
+          "name": "DB_NAME",
+          "value": "crmapi"
+        },
+        {
+          "name": "DB_PASSWORD",
+          "value": "***"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/crm-api-logs",
+          "awslogs-region": "us-east-2",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

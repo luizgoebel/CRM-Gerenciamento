@@ -12,9 +12,9 @@ on:
 env:
   # Variáveis de ambiente hardcoded para simplificação (para produção, use secrets!)
   AWS_REGION: us-east-2 # Valor fixo
-  ECR_REPOSITORY_NAME: seu-nome-do-repositorio-ecr # ATENÇÃO: SUBSTITUA PELO VALOR REAL DO SEU REPOSITÓRIO ECR
-  ECS_CLUSTER_NAME: seu-nome-do-cluster-ecs # ATENÇÃO: SUBSTITUA PELO VALOR REAL DO SEU CLUSTER ECS
-  ECS_SERVICE_NAME: seu-nome-do-servico-ecs # ATENÇÃO: SUBSTITUA PELO VALOR REAL DO SEU SERVIÇO ECS
+  ECR_REPOSITORY_NAME: crm-api-repo # NOME REAL DO SEU REPOSITÓRIO ECR
+  ECS_CLUSTER_NAME: crm-cluster # NOME REAL DO SEU CLUSTER ECS
+  ECS_SERVICE_NAME: crm-api-service # NOME REAL DO SEU SERVIÇO ECS
   ECS_TASK_DEFINITION_NAME: crm-api-task-definition # Valor fixo
   ECS_CONTAINER_NAME: crm-api-container # Valor fixo
 

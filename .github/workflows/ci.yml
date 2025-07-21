@@ -24,19 +24,10 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v4
 
-      - name: Listar arquivos para depuração
-        run: |
-          echo "Conteúdo da raiz do repositório:"
-          ls -F
-          echo "Conteúdo de src/:"
-          ls -F src/
-          echo "Conteúdo de src/CRM.API/:"
-          ls -F src/CRM.API/ || true
-          echo "Conteúdo de src/CRM.Tests/:"
-          ls -F src/CRM.Tests/ || true
-        shell: bash
+      # Removido o passo "Listar arquivos para depuração" pois não é necessário em um pipeline de produção.
+      # Se precisar depurar novamente no futuro, pode reativá-lo.
 
-      - name: Setup .NET SDK
+      - name: Configurar .NET SDK
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
@@ -44,12 +35,12 @@ jobs:
       - name: Restaurar dependências
         run: dotnet restore src/CRM-API.sln
 
-      - name: Build da API e Testes
+      - name: Build da API
         run: dotnet build src/CRM-API.sln --no-restore --configuration Release
 
-      - name: Testar API (se houver testes unitários)
+      - name: Executar Testes Unitários
         run: dotnet test src/CRM.Tests/CRM.Tests.csproj --no-build --verbosity normal --configuration Release
-        continue-on-error: true
+        continue-on-error: true # Permite que o workflow continue mesmo se os testes falharem
 
       - name: Configurar credenciais AWS (via OIDC)
         uses: aws-actions/configure-aws-credentials@v4
@@ -87,8 +78,9 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          # Cria o arquivo Dockerrun.aws.json na raiz do repositório
-          # Este arquivo informa ao Elastic Beanstalk qual imagem Docker usar.
+          # O Dockerrun.aws.json é um arquivo de configuração do Elastic Beanstalk,
+          # não faz parte da imagem Docker. Ele informa ao EB qual imagem Docker
+          # deve ser puxada do ECR para rodar a aplicação.
           cat > Dockerrun.aws.json <<EOF
           {
             "AWSEBDockerrunVersion": "1",
@@ -108,17 +100,16 @@ jobs:
 
       - name: Gerar pacote de deploy
         run: |
-          # Cria um arquivo .zip contendo o Dockerrun.aws.json
-          # O Elastic Beanstalk espera um pacote de deploy.
+          # Cria um arquivo .zip contendo o Dockerrun.aws.json.
+          # O Elastic Beanstalk espera um pacote de deploy neste formato.
           zip -r deploy.zip Dockerrun.aws.json
         shell: bash
 
       - name: Deploy para AWS Elastic Beanstalk (via AWS CLI)
         run: |
-          # Configura o EB CLI para o seu ambiente
+          # Configura o EB CLI para a sua aplicação e ambiente.
           eb init ${{ env.EB_APPLICATION_NAME }} --region ${{ env.AWS_REGION }} --platform docker --no-verify-ssl
           eb use ${{ env.EB_ENVIRONMENT_NAME }}
-          # Realiza o deploy do pacote .zip
-          # Usamos apenas --label para criar uma nova versão com o SHA do commit
+          # Realiza o deploy do pacote .zip com a nova versão da aplicação.
           eb deploy --label ${{ github.sha }}
         shell: bash

@@ -12,7 +12,7 @@
     {
       "name": "crm-api-container",
       "image": "REPLACE_ME_BY_RENDER_ACTION",
-      "essential": true,
+      // "essential": true, // Removido, pois o valor padrão já é 'true' para contêineres.
       "portMappings": [
         {
           "containerPort": 80,

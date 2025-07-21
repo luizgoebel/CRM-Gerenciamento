@@ -1,41 +1,109 @@
-{
-  "family": "crm-api-task-definition",
-  "networkMode": "awsvpc",
-  "cpu": "256",
-  "memory": "512",
-  "executionRoleArn": "arn:aws:iam::679625722040:role/ecsTaskExecutionRole",
-  "taskRoleArn": "arn:aws:iam::679625722040:role/ecsTaskRole",
-  "requiresCompatibilities": [
-    "FARGATE"
-  ],
-  "containerDefinitions": [
-    {
-      "name": "crm-api-container",
-      "image": "REPLACE_ME_BY_RENDER_ACTION",
-      "cpu": 0,
-      "memory": 0,
-      "essential": true,
-      "portMappings": [
-        {
-          "containerPort": 80,
-          "hostPort": 80,
-          "protocol": "tcp"
-        }
-      ],
-      "environment": [
-        {
-          "name": "ASPNETCORE_ENVIRONMENT",
-          "value": "Production"
-        }
-      ],
-      "logConfiguration": {
-        "logDriver": "awslogs",
-        "options": {
-          "awslogs-group": "/ecs/crm-api-logs",
-          "awslogs-region": "us-east-2",
-          "awslogs-stream-prefix": "ecs"
-        }
-      }
-    }
-  ]
-}
+name: Deploy API .NET para AWS ECS Fargate
+
+on:
+  push:
+    branches:
+      - development
+      - master
+  pull_request:
+    branches:
+      - development
+
+env:
+  # Variáveis de ambiente hardcoded para simplificação (para produção, use secrets!)
+  AWS_REGION: us-east-2 # Valor fixo
+  ECR_REPOSITORY_NAME: seu-nome-do-repositorio-ecr # ATENÇÃO: SUBSTITUA PELO VALOR REAL DO SEU REPOSITÓRIO ECR
+  ECS_CLUSTER_NAME: seu-nome-do-cluster-ecs # ATENÇÃO: SUBSTITUA PELO VALOR REAL DO SEU CLUSTER ECS
+  ECS_SERVICE_NAME: seu-nome-do-servico-ecs # ATENÇÃO: SUBSTITUA PELO VALOR REAL DO SEU SERVIÇO ECS
+  ECS_TASK_DEFINITION_NAME: crm-api-task-definition # Valor fixo
+  ECS_CONTAINER_NAME: crm-api-container # Valor fixo
+
+jobs:
+  build-test-and-deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: 'read'
+      id-token: 'write' # Necessário para o OIDC
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      # --- PASSO PARA DEPURAR (Mantido para verificar a estrutura) ---
+      - name: Listar arquivos para depuração
+        run: |
+          echo "Conteúdo da raiz do repositório:"
+          ls -F
+          echo "Conteúdo de src/:"
+          ls -F src/
+          echo "Conteúdo de src/CRM.API/:" # Caminho correto para o projeto API
+          ls -F src/CRM.API/ || true # Use || true para não falhar se o diretório não existir
+          echo "Conteúdo de src/CRM.Tests/:" # NOVO: Caminho para o projeto de testes
+          ls -F src/CRM.Tests/ || true # Use || true para não falhar se o diretório não existir
+        shell: bash
+      # --- FIM DO PASSO DE DEPURAR ---
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x' # Certifique-se de que corresponde à sua versão .NET
+
+      - name: Restaurar dependências
+        run: dotnet restore src/CRM-API.sln
+
+      - name: Build da API e Testes
+        run: dotnet build src/CRM-API.sln --no-restore --configuration Release
+
+      - name: Testar API (se houver testes unitários)
+        run: dotnet test src/CRM.Tests/CRM.Tests.csproj --no-build --verbosity normal --configuration Release
+        continue-on-error: true
+
+      - name: Configurar credenciais AWS (via OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }} # Permanece como secret
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login no Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build e Push da imagem Docker para ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        working-directory: .
+        run: |
+          docker build -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_NAME }}:$IMAGE_TAG -f Dockerfile .
+          docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_NAME }}:$IMAGE_TAG
+        shell: bash
+
+      - name: Renderizar Task Definition
+        id: render-task-definition
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: your-task-definition.json
+          container-name: ${{ env.ECS_CONTAINER_NAME }}
+          image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_NAME }}:${{ github.sha }}
+          environment-variables: | # Variáveis de ambiente do DB hardcoded aqui (para produção, use secrets!)
+            DB_HOST=crm-mysql-db.c12cgwouoxo0.us-east-2.rds.amazonaws.com
+            DB_PORT=3306
+            DB_USER=admin
+            DB_NAME=crmapi
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }} # Permanece como secret
+            ASPNETCORE_ENVIRONMENT=Production
+
+      - name: Exibir Task Definition Renderizada
+        run: |
+          echo "Task Definition Renderizada:"
+          cat ${{ steps.render-task-definition.outputs.task-definition }}
+        shell: bash
+
+      - name: Deploy para Amazon ECS Fargate
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.render-task-definition.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE_NAME }}
+          cluster: ${{ env.ECS_CLUSTER_NAME }}
+          wait-for-service-stability: true

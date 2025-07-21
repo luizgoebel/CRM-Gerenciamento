@@ -1,4 +1,4 @@
-name: Deploy API .NET para AWS Elastic Beanstalk
+name: Deploy API .NET para AWS Elastic Beanstalk (via AWS CLI)
 
 on:
   push:
@@ -67,23 +67,57 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         working-directory: .
         run: |
-          # O Dockerfile deve estar na raiz do seu repositório ou você precisa especificar o caminho
+          # O Dockerfile deve estar na raiz do seu repositório
           docker build -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_NAME }}:$IMAGE_TAG -f Dockerfile .
           docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_NAME }}:$IMAGE_TAG
         shell: bash
 
-      - name: Deploy para AWS Elastic Beanstalk
-        uses: einaregilsson/beanstalk-deploy@v22
-        with:
-          application_name: ${{ env.EB_APPLICATION_NAME }}
-          environment_name: ${{ env.EB_ENVIRONMENT_NAME }}
-          version_label: ${{ github.sha }}
-          region: ${{ env.AWS_REGION }}
-          # Adicionando as credenciais AWS diretamente para esta ação
-          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          # Não é necessário 'deployment_package' se a imagem já estiver no ECR
-          # e o Elastic Beanstalk estiver configurado para Docker.
-          # A imagem será puxada do ECR pelo Elastic Beanstalk.
-          # Certifique-se de que a role de instância do EC2 (aws-elasticbeanstalk-ec2-role)
-          # tem permissões para puxar imagens do ECR (AmazonEC2ContainerRegistryReadOnly).
+      - name: Instalar AWS Elastic Beanstalk CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip
+          pip3 install awsebcli --upgrade --user
+          # Adiciona o diretório de instalação do pip ao PATH para que o 'eb' seja encontrado
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+        shell: bash
+
+      - name: Criar Dockerrun.aws.json
+        id: create-dockerrun
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Cria o arquivo Dockerrun.aws.json na raiz do repositório
+          # Este arquivo informa ao Elastic Beanstalk qual imagem Docker usar.
+          cat > Dockerrun.aws.json <<EOF
+          {
+            "AWSEBDockerrunVersion": "1",
+            "Image": {
+              "Name": "${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY_NAME }}:${{ env.IMAGE_TAG }}",
+              "Update": "true"
+            },
+            "Ports": [
+              {
+                "ContainerPort": 80
+              }
+            ]
+          }
+          EOF
+          echo "Dockerrun.aws.json criado com sucesso."
+        shell: bash
+
+      - name: Gerar pacote de deploy
+        run: |
+          # Cria um arquivo .zip contendo o Dockerrun.aws.json
+          # O Elastic Beanstalk espera um pacote de deploy.
+          zip -r deploy.zip Dockerrun.aws.json
+        shell: bash
+
+      - name: Deploy para AWS Elastic Beanstalk (via AWS CLI)
+        run: |
+          # Configura o EB CLI para o seu ambiente
+          eb init ${{ env.EB_APPLICATION_NAME }} --region ${{ env.AWS_REGION }} --platform docker --no-verify-ssl
+          eb use ${{ env.EB_ENVIRONMENT_NAME }}
+          # Realiza o deploy do pacote .zip
+          eb deploy --version ${{ github.sha }} --label ${{ github.sha }}
+        shell: bash

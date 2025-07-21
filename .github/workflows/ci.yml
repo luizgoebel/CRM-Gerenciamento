@@ -46,7 +46,7 @@ jobs:
       - name: Testar API (se houver testes unitários)
         # Substitua 'src/CRM.API.Tests/CRM.API.Tests.csproj' pelo caminho do seu projeto de testes
         # O caminho é relativo à raiz do repositório
-        run: dotnet test src/CRM.API.Tests/CRM.API.Tests.csproj --no-build --verbosity normal --configuration Release
+        run: dotnet test src/CRM.API/CRM.API.Tests.csproj --no-build --verbosity normal --configuration Release
         continue-on-error: true # Permite que o workflow continue mesmo se os testes falharem
 
       - name: Configurar credenciais AWS (via OIDC)

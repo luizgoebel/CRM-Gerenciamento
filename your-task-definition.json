@@ -1,0 +1,41 @@
+{
+  "family": "crm-api-task-definition",
+  "networkMode": "awsvpc",
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::679625722040:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::679625722040:role/ecsTaskRole",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "containerDefinitions": [
+    {
+      "name": "crm-api-container",
+      "image": "REPLACE_ME_BY_RENDER_ACTION",
+      "cpu": 0,
+      "memory": 0,
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "hostPort": 8080,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "ASPNETCORE_ENVIRONMENT",
+          "value": "Production"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/crm-api-logs",
+          "awslogs-region": "us-east-2",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

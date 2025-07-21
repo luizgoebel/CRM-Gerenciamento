@@ -88,24 +88,6 @@ public class PedidoServiceTests
     }
 
     [Test]
-    public void CriarPedido_QuandoPedidoInvalido_DeveLancarExcecao()
-    {
-        // Arrange  
-        var pedidoDto = new PedidoDto
-        {
-            Id = 0,
-            ClienteId = 0,
-            Itens = new List<PedidoItemDto>
-            {
-                new PedidoItemDto { ProdutoId = 1, Quantidade = 2 }
-            }
-        };
-
-        // Act & Assert  
-        Assert.Throws<ServiceException>(() => _pedidoService.CriarPedido(pedidoDto));
-    }
-
-    [Test]
     public async Task ObterPedidosPaginados_ComFiltro_DeveRetornarSomentePedidosFiltrados()
     {
         // Arrange
@@ -127,7 +109,7 @@ public class PedidoServiceTests
     }
 
     [Test]
-    public async Task ObterPorId_QuandoPedidoExiste_DeveRetornarPedido()
+    public async Task ObterPorId_ClienteRegistrado_DeveRetornarPedido()
     {
         // Arrange  
         var pedido = new Pedido
@@ -150,16 +132,6 @@ public class PedidoServiceTests
     }
 
     [Test]
-    public void ObterPorId_QuandoNaoEncontrado_DeveLancarExcecao()
-    {
-        // Arrange  
-        _pedidoRepositoryMock.Setup(r => r.ObterPorId(It.IsAny<int>())).ReturnsAsync((Pedido?)null);
-
-        // Act & Assert  
-        Assert.ThrowsAsync<ServiceException>(() => _pedidoService.ObterPorId(999));
-    }
-
-    [Test]
     public async Task ObterTotalPedidosNaData_DeveRetornarTotalPedidos()
     {
         // Arrange  
@@ -173,17 +145,71 @@ public class PedidoServiceTests
         Assert.AreEqual(5, total);
     }
 
-     [Test]
+    [Test]
     public void RemoverPedido_QuandoPedidoEncontrado_ChamarRepositorio()
     {
         // Arrange  
         var pedido = new Pedido { Id = 1, ClienteId = 1 };
         _pedidoRepositoryMock.Setup(r => r.ObterPorId(1)).ReturnsAsync(pedido);
         _pedidoRepositoryMock.Setup(r => r.Remover(It.IsAny<Pedido>())).Verifiable();
+
         // Act  
         _pedidoService.Remover(1);
+
         // Assert  
         _pedidoRepositoryMock.Verify(r => r.Remover(It.Is<Pedido>(p => p.Id == 1)), Times.Once);
+    }
+
+    [Test]
+    public void CriarPedido_QuandoClienteIdForNegativo_DeveLancarExcecao()
+    {
+        // Arrange  
+        var pedidoDto = new PedidoDto
+        {
+            Id = 0,
+            ClienteId = -1,
+            Itens = new List<PedidoItemDto>
+            {
+                new PedidoItemDto { ProdutoId = 1, Quantidade = 2 }
+            }
+        };
+
+        // Act & Assert  
+        Assert.Throws<ServiceException>(() => _pedidoService.CriarPedido(pedidoDto));
+    }
+
+    [Test]
+    public void CriarPedido_ClienteNaoRegistrado_DeveLancarExcecao()
+    {
+        // Arrange  
+        var pedidoDto = new PedidoDto
+        {
+            Id = 0,
+            ClienteId = 0,
+            Itens = new List<PedidoItemDto>
+            {
+                new PedidoItemDto { ProdutoId = 1, Quantidade = 2 }
+            }
+        };
+
+        // Act & Assert  
+        Assert.Throws<ServiceException>(() => _pedidoService.CriarPedido(pedidoDto));
+    }
+
+    [Test]
+    public void CriarPedido_QuandoDtoForNulo_DeveLancarExcecao()
+    {
+        Assert.Throws<ServiceException>(() => _pedidoService.CriarPedido(null));
+    }
+
+    [Test]
+    public void ObterPorId_QuandoNaoEncontrado_DeveLancarExcecao()
+    {
+        // Arrange  
+        _pedidoRepositoryMock.Setup(r => r.ObterPorId(It.IsAny<int>())).ReturnsAsync((Pedido?)null);
+
+        // Act & Assert  
+        Assert.ThrowsAsync<ServiceException>(() => _pedidoService.ObterPorId(999));
     }
 
     [Test]

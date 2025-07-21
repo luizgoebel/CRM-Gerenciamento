@@ -10,14 +10,26 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src # Define o diretório de trabalho dentro do contêiner como /src
 
-# Copia o conteúdo da pasta 'src' do host (onde está o .sln e os projetos)
-# para o WORKDIR /src no contêiner.
-# Isso garante que a estrutura de pastas do seu projeto seja replicada dentro do contêiner.
-COPY src/ .
+# Copia o arquivo de solução (.sln) e os arquivos de projeto (.csproj) primeiro.
+# Isso permite que o 'dotnet restore' seja executado e o Docker possa cachear esta camada.
+# Se o .sln ou .csproj não mudarem, esta etapa e as seguintes (restore) não precisam ser reconstruídas.
+# O caminho é relativo ao contexto de build (que é a raiz do seu repositório)
+COPY src/CRM-API.sln ./
+COPY src/CRM.API/CRM.API.csproj CRM.API/
+COPY src/CRM.Application/CRM.Application.csproj CRM.Application/
+COPY src/CRM.Core/CRM.Core.csproj CRM.Core/
+COPY src/CRM.Domain/CRM.Domain.csproj CRM.Domain/
+COPY src/CRM.Infrastructure/CRM.Infrastructure.csproj CRM.Infrastructure/
+COPY src/CRM.Tests/CRM.Tests.csproj CRM.Tests/ 
 
 # Restaura as dependências para a solução inteira.
 # O .sln agora está em /src/CRM-API.sln dentro do contêiner.
 RUN dotnet restore "CRM-API.sln"
+
+# Copia o restante do conteúdo da pasta 'src' do host para o WORKDIR /src no contêiner.
+# Isso garante que a estrutura de pastas do seu projeto seja replicada dentro do contêiner.
+# Copia todo o conteúdo da pasta 'src' do host para o WORKDIR /src no contêiner
+COPY src/ .
 
 # Altera o diretório de trabalho para o diretório do projeto API para o publish
 # O projeto API está em /src/CRM.API/ dentro do contêiner.

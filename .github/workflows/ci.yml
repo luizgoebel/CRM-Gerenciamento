@@ -53,12 +53,13 @@ jobs:
         # Caminho corrigido para o .csproj dentro de src/CRM.API/
         run: dotnet restore src/CRM.API/CRM.API.csproj
 
-      - name: Build da API
-        # Caminho corrigido para o .csproj dentro de src/CRM.API/
-        run: dotnet build src/CRM.API/CRM.API.csproj --no-restore --configuration Release
+      - name: Build da API e Testes
+        # ALTERADO: Construir a solução completa para garantir que o projeto de testes seja compilado
+        run: dotnet build src/CRM-API.sln --no-restore --configuration Release
 
       - name: Testar API (se houver testes unitários)
         # Caminho CORRIGIDO para o projeto de testes: src/CRM.Tests/CRM.Tests.csproj
+        # O --no-build é mantido, pois a solução já foi construída
         run: dotnet test src/CRM.Tests/CRM.Tests.csproj --no-build --verbosity normal --configuration Release
         continue-on-error: true # Permite que o workflow continue mesmo se os testes falharem
 
@@ -79,8 +80,8 @@ jobs:
         # Mantém o diretório de trabalho na raiz do repositório
         working-directory: .
         run: |
-          # O Dockerfile está em src/CRM.API/Dockerfile e o contexto de build é src/CRM.API/
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_NAME:$IMAGE_TAG -f src/CRM.API/Dockerfile src/CRM.API/
+          # CORRIGIDO: O Dockerfile está na raiz do repositório e o contexto de build é a raiz do repositório
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_NAME:$IMAGE_TAG -f Dockerfile .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY_NAME:$IMAGE_TAG
         shell: bash
 

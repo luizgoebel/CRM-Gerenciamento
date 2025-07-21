@@ -1,22 +1,16 @@
-name: Deploy API .NET para AWS ECS Fargate
+name: Deploy API .NET para AWS Elastic Beanstalk
 
 on:
   push:
     branches:
       - development
-      - master
-  pull_request:
-    branches:
-      - development
+      - master # Você pode optar por implantar apenas da master para produção
 
 env:
-  # Variáveis de ambiente hardcoded para simplificação (para produção, use secrets!)
-  AWS_REGION: us-east-2 # Valor fixo
+  AWS_REGION: us-east-2 # Sua região AWS
   ECR_REPOSITORY_NAME: crm-api-repo # NOME REAL DO SEU REPOSITÓRIO ECR
-  ECS_CLUSTER_NAME: crm-cluster # NOME REAL DO SEU CLUSTER ECS
-  ECS_SERVICE_NAME: crm-api-service # NOME REAL DO SEU SERVIÇO ECS
-  ECS_TASK_DEFINITION_NAME: crm-api-task-definition # Valor fixo
-  ECS_CONTAINER_NAME: crm-api-container # Valor fixo
+  EB_APPLICATION_NAME: crm-api-app # Nome da aplicação Elastic Beanstalk que você criou
+  EB_ENVIRONMENT_NAME: crm-api-env # Nome do ambiente Elastic Beanstalk que você criou
 
 jobs:
   build-test-and-deploy:
@@ -30,24 +24,22 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v4
 
-      # --- PASSO PARA DEPURAR (Mantido para verificar a estrutura) ---
       - name: Listar arquivos para depuração
         run: |
           echo "Conteúdo da raiz do repositório:"
           ls -F
           echo "Conteúdo de src/:"
           ls -F src/
-          echo "Conteúdo de src/CRM.API/:" # Caminho correto para o projeto API
-          ls -F src/CRM.API/ || true # Use || true para não falhar se o diretório não existir
-          echo "Conteúdo de src/CRM.Tests/:" # NOVO: Caminho para o projeto de testes
-          ls -F src/CRM.Tests/ || true # Use || true para não falhar se o diretório não existir
+          echo "Conteúdo de src/CRM.API/:"
+          ls -F src/CRM.API/ || true
+          echo "Conteúdo de src/CRM.Tests/:"
+          ls -F src/CRM.Tests/ || true
         shell: bash
-      # --- FIM DO PASSO DE DEPURAR ---
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x' # Certifique-se de que corresponde à sua versão .NET
+          dotnet-version: '8.0.x'
 
       - name: Restaurar dependências
         run: dotnet restore src/CRM-API.sln
@@ -62,7 +54,7 @@ jobs:
       - name: Configurar credenciais AWS (via OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }} # Permanece como secret
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }} # Sua role de deploy do GitHub Actions
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login no Amazon ECR
@@ -75,35 +67,21 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         working-directory: .
         run: |
+          # O Dockerfile deve estar na raiz do seu repositório ou você precisa especificar o caminho
           docker build -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_NAME }}:$IMAGE_TAG -f Dockerfile .
           docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_NAME }}:$IMAGE_TAG
         shell: bash
 
-      - name: Renderizar Task Definition
-        id: render-task-definition
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
+      - name: Deploy para AWS Elastic Beanstalk
+        uses: aws-actions/elasticbeanstalk-deploy@v1
         with:
-          task-definition: your-task-definition.json
-          container-name: ${{ env.ECS_CONTAINER_NAME }}
-          image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_NAME }}:${{ github.sha }}
-          environment-variables: |
-            DB_HOST=crm-mysql-db.c12cgwouoxo0.us-east-2.rds.amazonaws.com
-            DB_PORT=3306
-            DB_USER=admin
-            DB_NAME=crmapi
-            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-            ASPNETCORE_ENVIRONMENT=Production
-
-      - name: Exibir Task Definition Renderizada
-        run: |
-          echo "Task Definition Renderizada:"
-          cat ${{ steps.render-task-definition.outputs.task-definition }}
-        shell: bash
-
-      - name: Deploy para Amazon ECS Fargate
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-        with:
-          task-definition: ${{ steps.render-task-definition.outputs.task-definition }}
-          service: ${{ env.ECS_SERVICE_NAME }}
-          cluster: ${{ env.ECS_CLUSTER_NAME }}
-          wait-for-service-stability: true
+          application_name: ${{ env.EB_APPLICATION_NAME }}
+          environment_name: ${{ env.EB_ENVIRONMENT_NAME }}
+          version_label: ${{ github.sha }}
+          # O Elastic Beanstalk usará o Dockerfile na raiz do seu repositório.
+          # As variáveis de ambiente são configuradas diretamente no ambiente EB
+          # ou podem ser passadas aqui se forem específicas da versão.
+          # Para as variáveis do DB, é melhor configurá-las no ambiente EB diretamente
+          # ou passá-las via `option_settings` se forem dinâmicas por deploy.
+          # Por simplicidade inicial, vamos configurar no EB e depois no pipeline se necessário.
+          region: ${{ env.AWS_REGION }}

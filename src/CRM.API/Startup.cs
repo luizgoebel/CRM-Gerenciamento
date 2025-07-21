@@ -64,7 +64,8 @@ public class Startup
                 {
                     m.MigrationsAssembly("CRM.Infrastructure");
                     m.CommandTimeout(50000);
-                    m.EnableRetryOnFailure(1, TimeSpan.FromSeconds(3), null);
+                    // AUMENTADO O NÚMERO DE RETRIES E O TEMPO DE ESPERA para a conexão inicial do banco de dados
+                    m.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null); // Aumentado para 5 retries e 10 segundos de delay
                 })
             .LogTo(s => System.Diagnostics.Debug.WriteLine(s))
             .EnableDetailedErrors(true)

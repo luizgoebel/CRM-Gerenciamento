@@ -10,13 +10,13 @@ on:
       - development
 
 env:
-  # Variáveis de ambiente que serão usadas no workflow
-  AWS_REGION: ${{ secrets.AWS_REGION }} # Ex: us-east-2
-  ECR_REPOSITORY_NAME: ${{ secrets.ECR_REPOSITORY_NAME }} # Ex: crm-api-repo
-  ECS_CLUSTER_NAME: ${{ secrets.ECS_CLUSTER_NAME }} # Ex: crm-cluster
-  ECS_SERVICE_NAME: ${{ secrets.ECS_SERVICE_NAME }} # Ex: crm-api-service
-  ECS_TASK_DEFINITION_NAME: ${{ secrets.ECS_TASK_DEFINITION_NAME }} # Ex: crm-api-task-definition (Nome da sua Task Definition, ex: my-api-task)
-  ECS_CONTAINER_NAME: ${{ secrets.ECS_CONTAINER_NAME }} # Ex: crm-api-container (nome do contêiner na Task Definition)
+  # Variáveis de ambiente hardcoded para simplificação (para produção, use secrets!)
+  AWS_REGION: us-east-2 # Valor fixo
+  ECR_REPOSITORY_NAME: seu-nome-do-repositorio-ecr # ATENÇÃO: SUBSTITUA PELO VALOR REAL DO SEU REPOSITÓRIO ECR
+  ECS_CLUSTER_NAME: seu-nome-do-cluster-ecs # ATENÇÃO: SUBSTITUA PELO VALOR REAL DO SEU CLUSTER ECS
+  ECS_SERVICE_NAME: seu-nome-do-servico-ecs # ATENÇÃO: SUBSTITUA PELO VALOR REAL DO SEU SERVIÇO ECS
+  ECS_TASK_DEFINITION_NAME: crm-api-task-definition # Valor fixo
+  ECS_CONTAINER_NAME: crm-api-container # Valor fixo
 
 jobs:
   build-test-and-deploy:
@@ -50,23 +50,19 @@ jobs:
           dotnet-version: '8.0.x' # Certifique-se de que corresponde à sua versão .NET
 
       - name: Restaurar dependências
-        # CORRIGIDO: Restaurar a solução completa para garantir que todos os projetos (incluindo testes) tenham suas dependências restauradas
         run: dotnet restore src/CRM-API.sln
 
       - name: Build da API e Testes
-        # Construir a solução completa. O --no-restore é mantido, pois a restauração já foi feita no passo anterior.
         run: dotnet build src/CRM-API.sln --no-restore --configuration Release
 
       - name: Testar API (se houver testes unitários)
-        # Caminho CORRIGIDO para o projeto de testes: src/CRM.Tests/CRM.Tests.csproj
-        # O --no-build é mantido, pois a solução já foi construída
         run: dotnet test src/CRM.Tests/CRM.Tests.csproj --no-build --verbosity normal --configuration Release
-        continue-on-error: true # Permite que o workflow continue mesmo se os testes falharem
+        continue-on-error: true
 
       - name: Configurar credenciais AWS (via OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }} # O ARN do IAM Role que o GitHub Actions irá assumir
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }} # Permanece como secret
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login no Amazon ECR
@@ -76,37 +72,38 @@ jobs:
       - name: Build e Push da imagem Docker para ECR
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }} # Usa o SHA do commit como tag da imagem
-        # Mantém o diretório de trabalho na raiz do repositório
+          IMAGE_TAG: ${{ github.sha }}
         working-directory: .
         run: |
-          # O Dockerfile está na raiz do repositório e o contexto de build é a raiz do repositório
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_NAME:$IMAGE_TAG -f Dockerfile .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY_NAME:$IMAGE_TAG
+          docker build -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_NAME }}:$IMAGE_TAG -f Dockerfile .
+          docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_NAME }}:$IMAGE_TAG
         shell: bash
 
       - name: Renderizar Task Definition
         id: render-task-definition
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
-          # O nome do arquivo JSON da Task Definition que você tem no seu repositório
-          task-definition: your-task-definition.json # ATENÇÃO: Substitua pelo nome do seu arquivo JSON da Task Definition
+          task-definition: your-task-definition.json
           container-name: ${{ env.ECS_CONTAINER_NAME }}
           image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_NAME }}:${{ github.sha }}
-          environment-variables: | # Variáveis de ambiente para a Task Definition
-            DB_HOST=${{ secrets.DB_HOST }}
-            DB_PORT=${{ secrets.DB_PORT }}
-            DB_USER=${{ secrets.DB_USER }}
-            DB_NAME=${{ secrets.DB_NAME }}
+          environment-variables: |
+            DB_HOST=crm-mysql-db.c12cgwouoxo0.us-east-2.rds.amazonaws.com
+            DB_PORT=3306
+            DB_USER=admin
+            DB_NAME=crmapi
             DB_PASSWORD=${{ secrets.DB_PASSWORD }}
             ASPNETCORE_ENVIRONMENT=Production
+
+      - name: Exibir Task Definition Renderizada
+        run: |
+          echo "Task Definition Renderizada:"
+          cat ${{ steps.render-task-definition.outputs.task-definition }}
+        shell: bash
 
       - name: Deploy para Amazon ECS Fargate
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
-          # Agora, passamos a definição de tarefa renderizada
           task-definition: ${{ steps.render-task-definition.outputs.task-definition }}
           service: ${{ env.ECS_SERVICE_NAME }}
           cluster: ${{ env.ECS_CLUSTER_NAME }}
           wait-for-service-stability: true
-          # REMOVIDO: environment-variables e image, pois já estão na task-definition renderizada

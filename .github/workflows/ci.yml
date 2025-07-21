@@ -30,23 +30,37 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v4
 
+      # --- PASSO PARA DEPURAR (Mantido para verificar a estrutura) ---
+      - name: Listar arquivos para depuração
+        run: |
+          echo "Conteúdo da raiz do repositório:"
+          ls -F
+          echo "Conteúdo de src/:"
+          ls -F src/
+          echo "Conteúdo de src/CRM.API/:" # Caminho correto para o projeto API
+          ls -F src/CRM.API/ || true # Use || true para não falhar se o diretório não existir
+          echo "Conteúdo de src/CRM.Tests/:" # NOVO: Caminho para o projeto de testes
+          ls -F src/CRM.Tests/ || true # Use || true para não falhar se o diretório não existir
+        shell: bash
+      # --- FIM DO PASSO DE DEPURAR ---
+
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x' # Certifique-se de que corresponde à sua versão .NET
 
       - name: Restaurar dependências
-        # O caminho é relativo à raiz do repositório
-        run: dotnet restore src/CRM.API/CRM.API.csproj
+        # CORRIGIDO: Restaurar a solução completa para garantir que todos os projetos (incluindo testes) tenham suas dependências restauradas
+        run: dotnet restore src/CRM-API.sln
 
-      - name: Build da API
-        # O caminho é relativo à raiz do repositório
-        run: dotnet build src/CRM.API/CRM.API.csproj --no-restore --configuration Release
+      - name: Build da API e Testes
+        # Construir a solução completa. O --no-restore é mantido, pois a restauração já foi feita no passo anterior.
+        run: dotnet build src/CRM-API.sln --no-restore --configuration Release
 
       - name: Testar API (se houver testes unitários)
-        # Substitua 'src/CRM.API.Tests/CRM.API.Tests.csproj' pelo caminho do seu projeto de testes
-        # O caminho é relativo à raiz do repositório
-        run: dotnet test src/CRM.API/CRM.API.Tests.csproj --no-build --verbosity normal --configuration Release
+        # Caminho CORRIGIDO para o projeto de testes: src/CRM.Tests/CRM.Tests.csproj
+        # O --no-build é mantido, pois a solução já foi construída
+        run: dotnet test src/CRM.Tests/CRM.Tests.csproj --no-build --verbosity normal --configuration Release
         continue-on-error: true # Permite que o workflow continue mesmo se os testes falharem
 
       - name: Configurar credenciais AWS (via OIDC)
@@ -63,9 +77,11 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }} # Usa o SHA do commit como tag da imagem
+        # Mantém o diretório de trabalho na raiz do repositório
+        working-directory: .
         run: |
-          # O Dockerfile da API está em 'CRM.API/Dockerfile' e o contexto é a raiz do repositório
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_NAME:$IMAGE_TAG -f CRM.API/Dockerfile .
+          # O Dockerfile está na raiz do repositório e o contexto de build é a raiz do repositório
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_NAME:$IMAGE_TAG -f Dockerfile .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY_NAME:$IMAGE_TAG
         shell: bash
 
@@ -77,8 +93,6 @@ jobs:
           cluster: ${{ env.ECS_CLUSTER_NAME }}
           wait-for-service-stability: true
           # Variáveis de ambiente para a Task Definition (sobrescrevem as da Task Definition)
-          # Isso é útil para passar segredos como senhas de BD que não devem estar no Dockerfile
-          # ou para ajustar configurações específicas do ambiente de deploy.
           environment-variables: |
             DB_HOST=${{ secrets.DB_HOST }}
             DB_PORT=${{ secrets.DB_PORT }}

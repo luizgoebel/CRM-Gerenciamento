@@ -17,7 +17,7 @@ env:
   ECS_SERVICE_NAME: ${{ secrets.ECS_SERVICE_NAME }} # Ex: crm-api-service
   ECS_TASK_DEFINITION_NAME: ${{ secrets.ECS_TASK_DEFINITION_NAME }} # Ex: crm-api-task-definition
   ECS_CONTAINER_NAME: ${{ secrets.ECS_CONTAINER_NAME }} # Ex: crm-api-container (nome do contêiner na Task Definition)
-  API_PROJECT_PATH: src/CRM.API # <--- REINTRODUZIDO: Caminho base para o projeto API dentro do repositório
+  # API_PROJECT_PATH removido, pois o Dockerfile está na raiz do repositório
 
 jobs:
   build-test-and-deploy:
@@ -31,17 +31,13 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v4
 
-      # --- PASSO PARA DEPURAR ---
+      # --- PASSO PARA DEPURAR (Mantido para verificar a estrutura) ---
       - name: Listar arquivos para depuração
         run: |
           echo "Conteúdo da raiz do repositório:"
           ls -F
-          echo "Conteúdo de src/:"
-          ls -F src/
-          echo "Conteúdo de src/CRM.API/:" # Caminho com capitalização original
-          ls -F src/CRM.API/ || true # Use || true para não falhar se o diretório não existir
-          echo "Conteúdo de src/crm.api/:" # Caminho com capitalização minúscula
-          ls -F src/crm.api/ || true # Use || true para não falhar se o diretório não existir
+          echo "Conteúdo de CRM.API/:" # Caminho com capitalização original
+          ls -F CRM.API/ || true # Use || true para não falhar se o diretório não existir
         shell: bash
       # --- FIM DO PASSO DE DEPURAR ---
 
@@ -51,18 +47,16 @@ jobs:
           dotnet-version: '8.0.x' # Certifique-se de que corresponde à sua versão .NET
 
       - name: Restaurar dependências
-        # Usa a variável API_PROJECT_PATH para referenciar o .csproj
-        run: dotnet restore ${{ env.API_PROJECT_PATH }}/CRM.API.csproj
+        # Caminho direto para o .csproj, assumindo que CRM.API/ está na raiz do repositório
+        run: dotnet restore CRM.API/CRM.API.csproj
 
       - name: Build da API
-        # Usa a variável API_PROJECT_PATH para referenciar o .csproj
-        run: dotnet build ${{ env.API_PROJECT_PATH }}/CRM.API.csproj --no-restore --configuration Release
+        # Caminho direto para o .csproj, assumindo que CRM.API/ está na raiz do repositório
+        run: dotnet build CRM.API/CRM.API.csproj --no-restore --configuration Release
 
       - name: Testar API (se houver testes unitários)
-        # Substitua 'src/CRM.API.Tests/CRM.API.Tests.csproj' pelo caminho do seu projeto de testes
-        # O caminho é relativo à raiz do repositório
-        # Adapte este caminho se o seu projeto de testes estiver em outro lugar
-        run: dotnet test src/CRM.API/CRM.API.Tests.csproj --no-build --verbosity normal --configuration Release
+        # Caminho corrigido para o projeto de testes
+        run: dotnet test CRM.API/CRM.API.Tests.csproj --no-build --verbosity normal --configuration Release
         continue-on-error: true # Permite que o workflow continue mesmo se os testes falharem
 
       - name: Configurar credenciais AWS (via OIDC)
@@ -79,10 +73,10 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }} # Usa o SHA do commit como tag da imagem
-        working-directory: ${{ env.API_PROJECT_PATH }} # <--- NOVO: Define o diretório de trabalho para o projeto API
+        working-directory: . # <--- AJUSTADO: Define o diretório de trabalho para a raiz do repositório
         run: |
-          # O Dockerfile agora é referenciado diretamente, pois o working-directory já está na pasta do projeto
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_NAME:$IMAGE_TAG .
+          # O Dockerfile agora é referenciado diretamente, pois o working-directory já está na raiz
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_NAME:$IMAGE_TAG -f Dockerfile .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY_NAME:$IMAGE_TAG
         shell: bash
 
@@ -94,8 +88,6 @@ jobs:
           cluster: ${{ env.ECS_CLUSTER_NAME }}
           wait-for-service-stability: true
           # Variáveis de ambiente para a Task Definition (sobrescrevem as da Task Definition)
-          # Isso é útil para passar segredos como senhas de BD que não devem estar no Dockerfile
-          # ou para ajustar configurações específicas do ambiente de deploy.
           environment-variables: |
             DB_HOST=${{ secrets.DB_HOST }}
             DB_PORT=${{ secrets.DB_PORT }}

@@ -58,8 +58,8 @@ jobs:
         run: dotnet build src/CRM.API/CRM.API.csproj --no-restore --configuration Release
 
       - name: Testar API (se houver testes unitários)
-        # Caminho CORRIGIDO para o projeto de testes: src/CRM.Tests/
-        run: dotnet test src/CRM.Tests/CRM.API.Tests.csproj --no-build --verbosity normal --configuration Release
+        # Caminho CORRIGIDO para o projeto de testes: src/CRM.Tests/CRM.Tests.csproj
+        run: dotnet test src/CRM.Tests/CRM.Tests.csproj --no-build --verbosity normal --configuration Release
         continue-on-error: true # Permite que o workflow continue mesmo se os testes falharem
 
       - name: Configurar credenciais AWS (via OIDC)
@@ -76,11 +76,11 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }} # Usa o SHA do commit como tag da imagem
-        # Define o diretório de trabalho para a RAIZ do repositório
-        working-directory: . # <--- AJUSTADO: Diretório de trabalho para a raiz do repositório
+        # Mantém o diretório de trabalho na raiz do repositório
+        working-directory: .
         run: |
-          # O Dockerfile é referenciado a partir da raiz do repositório
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_NAME:$IMAGE_TAG -f Dockerfile .
+          # O Dockerfile está em src/CRM.API/Dockerfile e o contexto de build é src/CRM.API/
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_NAME:$IMAGE_TAG -f src/CRM.API/Dockerfile src/CRM.API/
           docker push $ECR_REGISTRY/$ECR_REPOSITORY_NAME:$IMAGE_TAG
         shell: bash
 

@@ -7,6 +7,8 @@ using System.Globalization;
 using System;
 using System.Threading;
 using System.Threading.Tasks; // Adicionado para Task.Delay
+using CRM.Application; // Adicionado para Dependencias
+using CRM.Infrastructure; // Adicionado para Dependencias
 
 namespace CRM.API;
 
@@ -94,44 +96,45 @@ public class Startup
             SupportedUICultures = supportedCultures
         });
 
-        if (env.IsDevelopment())
+        // Removido o if (env.IsDevelopment()) para aplicar migrações em qualquer ambiente.
+        // ATENÇÃO: Para produção, considere um processo de migração separado.
+        const int maxRetries = 5;
+        const int delayMilliseconds = 5000; // 5 segundos
+
+        for (int i = 0; i < maxRetries; i++)
         {
-            app.UseDeveloperExceptionPage();
-
-            // Lógica para aplicar migrações automaticamente em ambiente de Desenvolvimento
-            // Implementa um retry para garantir que o banco de dados esteja pronto.
-            const int maxRetries = 5;
-            const int delayMilliseconds = 5000; // 5 segundos
-
-            for (int i = 0; i < maxRetries; i++)
+            using (var scope = app.ApplicationServices.CreateScope())
             {
-                using (var scope = app.ApplicationServices.CreateScope())
+                var services = scope.ServiceProvider;
+                try
                 {
-                    var services = scope.ServiceProvider;
-                    try
-                    {
-                        var dbContext = services.GetRequiredService<CrmDbContext>();
-                        dbContext.Database.Migrate();
-                        Console.WriteLine("Migrações do banco de dados aplicadas com sucesso.");
-                        break; // Sai do loop se as migrações forem aplicadas
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.Error.WriteLine($"Tentativa {i + 1}/{maxRetries}: Ocorreu um erro ao aplicar as migrações do banco de dados: {ex.Message}");
-                        Console.Error.WriteLine(ex.StackTrace);
+                    var dbContext = services.GetRequiredService<CrmDbContext>();
+                    dbContext.Database.Migrate();
+                    Console.WriteLine("Migrações do banco de dados aplicadas com sucesso.");
+                    break; // Sai do loop se as migrações forem aplicadas
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"Tentativa {i + 1}/{maxRetries}: Ocorreu um erro ao aplicar as migrações do banco de dados: {ex.Message}");
+                    Console.Error.WriteLine(ex.StackTrace);
 
-                        if (i < maxRetries - 1)
-                        {
-                            Console.WriteLine($"Aguardando {delayMilliseconds / 1000} segundos antes de tentar novamente...");
-                            Thread.Sleep(delayMilliseconds); // Espera antes da próxima tentativa
-                        }
-                        else
-                        {
-                            Console.Error.WriteLine("Todas as tentativas de aplicar migrações falharam. A aplicação pode não funcionar corretamente.");
-                        }
+                    if (i < maxRetries - 1)
+                    {
+                        Console.WriteLine($"Aguardando {delayMilliseconds / 1000} segundos antes de tentar novamente...");
+                        Thread.Sleep(delayMilliseconds); // Espera antes da próxima tentativa
+                    }
+                    else
+                    {
+                        Console.Error.WriteLine("Todas as tentativas de aplicar migrações falharam. A aplicação pode não funcionar corretamente.");
                     }
                 }
             }
+        }
+        // Fim da lógica de migrações
+
+        if (env.IsDevelopment())
+        {
+            app.UseDeveloperExceptionPage();
         }
         else
         {

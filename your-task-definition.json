@@ -12,13 +12,13 @@
     {
       "name": "crm-api-container",
       "image": "REPLACE_ME_BY_RENDER_ACTION",
-      "cpu": 0,
-      "memory": 0,
+      "cpu": 0,  // IMPORTANTE: Para Fargate, CPU do contêiner deve ser 0 se definida no nível da tarefa
+      "memory": 0, // IMPORTANTE: Para Fargate, memória do contêiner deve ser 0 se definida no nível da tarefa
       "essential": true,
       "portMappings": [
         {
-          "containerPort": 8080,
-          "hostPort": 8080,
+          "containerPort": 80,  // CORRIGIDO: Deve ser a porta que sua API escuta dentro do contêiner (80)
+          "hostPort": 80,       // No Fargate, hostPort geralmente é a mesma que containerPort
           "protocol": "tcp"
         }
       ],

@@ -49,7 +49,7 @@ public class PedidoService(IPedidoRepository pedidoRepository, IClienteRepositor
     public async Task<PedidoDto> ObterPorId(int id)
     {
         var pedido = await _pedidoRepository.ObterPorId(id)
-            ?? throw new ServiceException("Não foi possível localizar o pedido.");
+            ?? throw new ServiceException("Não foi possível localizar o pedido. Por favor, verifique os dados inseridos e tente novamente.");
 
         return pedido.ToDto();
     }
@@ -57,7 +57,7 @@ public class PedidoService(IPedidoRepository pedidoRepository, IClienteRepositor
     public void Remover(int id)
     {
         var pedido = _pedidoRepository.ObterPorId(id).GetAwaiter().GetResult()
-            ?? throw new ServiceException("Pedido não encontrado.");
+            ?? throw new ServiceException("Não conseguimos encontrar seu pedido. Por favor, confirme os dados do e tente novamente.");
 
         _pedidoRepository.Remover(pedido);
     }
@@ -65,7 +65,7 @@ public class PedidoService(IPedidoRepository pedidoRepository, IClienteRepositor
     public void CriarPedido(PedidoDto pedidoDto)
     {
         if (pedidoDto == null || pedidoDto.ClienteId <= 0)
-            throw new ServiceException("Pedido inválido. Verifique os dados informados.");
+            throw new ServiceException("Não foi possível processar seu pedido. Por favor, verifique se todos os dados estão corretos e tente novamente.");
 
         if (pedidoDto.Id.HasValue && pedidoDto.Id > 0)
             AtualizarPedido(pedidoDto);
@@ -76,7 +76,7 @@ public class PedidoService(IPedidoRepository pedidoRepository, IClienteRepositor
     private void CriarPedidoNovo(PedidoDto dto)
     {
         var cliente = _clienteRepository.ObterPorId((int)dto.ClienteId!).GetAwaiter().GetResult()
-            ?? throw new ServiceException("Cliente não encontrado.");
+            ?? throw new ServiceException("Não encontramos seu cadastro. Por favor, verifique os dados de acesso ou crie uma nova conta.");
 
         var pedido = dto.ToModel();
 
@@ -91,10 +91,10 @@ public class PedidoService(IPedidoRepository pedidoRepository, IClienteRepositor
     private void AtualizarPedido(PedidoDto dto)
     {
         var pedido = _pedidoRepository.ObterPorId((int)dto.Id!).GetAwaiter().GetResult()
-            ?? throw new ServiceException("Pedido não encontrado para atualização.");
+            ?? throw new ServiceException("Não conseguimos encontrar seu pedido. Por favor, confirme o número do pedido e tente novamente.");
 
         var cliente = _clienteRepository.ObterPorId((int)dto.ClienteId!).GetAwaiter().GetResult()
-            ?? throw new ServiceException("Cliente não encontrado.");
+            ?? throw new ServiceException("Não encontramos seu cadastro. Por favor, verifique os dados de acesso ou crie uma nova conta.");
 
         var itensDto = dto.ToModel().Itens;
 
@@ -140,7 +140,7 @@ public class PedidoService(IPedidoRepository pedidoRepository, IClienteRepositor
     private void ValidarPedido(Pedido pedido, Cliente cliente)
     {
         if (pedido.Itens == null || pedido.Itens.Count == 0)
-            throw new ServiceException("O pedido deve conter pelo menos um item.");
+            throw new ServiceException("Para prosseguir, seu pedido deve incluir pelo menos um item.");
 
         var duplicados = pedido.Itens
             .GroupBy(i => i.ProdutoId)
@@ -149,14 +149,14 @@ public class PedidoService(IPedidoRepository pedidoRepository, IClienteRepositor
             .ToList();
 
         if (duplicados.Any())
-            throw new ServiceException("Há produtos duplicados no pedido.");
+            throw new ServiceException("Por favor, ajuste a quantidade ou remova os produtos duplicados antes de continuar.");
 
         if (!cliente.CadastroCompleto())
-            throw new ServiceException("O cadastro do cliente está incompleto. Atualize para prosseguir.");
+            throw new ServiceException("Seu cadastro está incompleto. Por favor, preencha todos os campos obrigatórios para finalizar o processo.");
 
         var soma = pedido.Itens.Sum(i => i.Subtotal);
         if (Math.Abs(pedido.ValorTotal - soma) > 0.01m)
-            throw new ServiceException("O valor total está incorreto com base nos itens informados.");
+            throw new ServiceException("O valor final da compra está incorreto. Por favor, revise os itens e as quantidades no seu carrinho.");
     }
 
     public async Task<int> ObterTotalPedidosNaData(DateOnly data)

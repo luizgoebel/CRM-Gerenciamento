@@ -39,6 +39,8 @@ jobs:
           ls -F src/
           echo "Conteúdo de src/CRM.API/:" # Caminho correto para o projeto API
           ls -F src/CRM.API/ || true # Use || true para não falhar se o diretório não existir
+          echo "Conteúdo de src/CRM.Tests/:" # NOVO: Caminho para o projeto de testes
+          ls -F src/CRM.Tests/ || true # Use || true para não falhar se o diretório não existir
         shell: bash
       # --- FIM DO PASSO DE DEPURAR ---
 
@@ -56,8 +58,8 @@ jobs:
         run: dotnet build src/CRM.API/CRM.API.csproj --no-restore --configuration Release
 
       - name: Testar API (se houver testes unitários)
-        # Caminho corrigido para o projeto de testes dentro de src/CRM.API/
-        run: dotnet test src/CRM.API/CRM.API.Tests.csproj --no-build --verbosity normal --configuration Release
+        # Caminho CORRIGIDO para o projeto de testes: src/CRM.Tests/
+        run: dotnet test src/CRM.Tests/CRM.API.Tests.csproj --no-build --verbosity normal --configuration Release
         continue-on-error: true # Permite que o workflow continue mesmo se os testes falharem
 
       - name: Configurar credenciais AWS (via OIDC)
@@ -74,10 +76,10 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }} # Usa o SHA do commit como tag da imagem
-        # Define o diretório de trabalho para a pasta do projeto API
-        working-directory: src/CRM.API # <--- AJUSTADO: Diretório de trabalho para o projeto API
+        # Define o diretório de trabalho para a RAIZ do repositório
+        working-directory: . # <--- AJUSTADO: Diretório de trabalho para a raiz do repositório
         run: |
-          # O Dockerfile agora é referenciado diretamente, pois o working-directory já está na pasta do projeto
+          # O Dockerfile é referenciado a partir da raiz do repositório
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_NAME:$IMAGE_TAG -f Dockerfile .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY_NAME:$IMAGE_TAG
         shell: bash

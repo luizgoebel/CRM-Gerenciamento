@@ -50,11 +50,11 @@ jobs:
           dotnet-version: '8.0.x' # Certifique-se de que corresponde à sua versão .NET
 
       - name: Restaurar dependências
-        # Caminho corrigido para o .csproj dentro de src/CRM.API/
-        run: dotnet restore src/CRM.API/CRM.API.csproj
+        # CORRIGIDO: Restaurar a solução completa para garantir que todos os projetos (incluindo testes) tenham suas dependências restauradas
+        run: dotnet restore src/CRM-API.sln
 
       - name: Build da API e Testes
-        # ALTERADO: Construir a solução completa para garantir que o projeto de testes seja compilado
+        # Construir a solução completa. O --no-restore é mantido, pois a restauração já foi feita no passo anterior.
         run: dotnet build src/CRM-API.sln --no-restore --configuration Release
 
       - name: Testar API (se houver testes unitários)
@@ -80,7 +80,7 @@ jobs:
         # Mantém o diretório de trabalho na raiz do repositório
         working-directory: .
         run: |
-          # CORRIGIDO: O Dockerfile está na raiz do repositório e o contexto de build é a raiz do repositório
+          # O Dockerfile está na raiz do repositório e o contexto de build é a raiz do repositório
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_NAME:$IMAGE_TAG -f Dockerfile .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY_NAME:$IMAGE_TAG
         shell: bash

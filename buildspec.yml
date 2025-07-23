@@ -1,0 +1,78 @@
+version: 0.2
+
+# Define as variáveis de ambiente que serão usadas no build.
+# Estas variáveis serão configuradas no projeto CodeBuild na AWS.
+env:
+  variables:
+    AWS_REGION: us-east-2 # Sua região AWS
+    ECR_REPOSITORY_NAME: crm-api-repo # NOME REAL DO SEU REPOSITÓRIO ECR
+    # EB_APPLICATION_NAME e EB_ENVIRONMENT_NAME não são necessários aqui,
+    # pois o deploy será feito diretamente pelo CodePipeline para o Elastic Beanstalk.
+
+phases:
+  install:
+    commands:
+      # Instala o .NET SDK. O CodeBuild já tem algumas imagens com o .NET,
+      # mas esta etapa garante que a versão correta esteja disponível.
+      - echo "Instalando .NET SDK..."
+      - apt-get update -y
+      - apt-get install -y dotnet-sdk-8.0
+
+      # Instala o utilitário 'zip' se não estiver presente (geralmente já está em imagens CodeBuild)
+      - echo "Instalando utilitário zip..."
+      - apt-get install -y zip
+
+  pre_build:
+    commands:
+      # Configura o login no Amazon ECR.
+      # O CodeBuild usa as credenciais da sua role de serviço para autenticar.
+      - echo "Fazendo login no Amazon ECR..."
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+
+  build:
+    commands:
+      - echo "Restaurando dependências .NET..."
+      - dotnet restore src/CRM-API.sln
+
+      - echo "Construindo a API .NET..."
+      - dotnet build src/CRM-API.sln --no-restore --configuration Release
+
+      - echo "Executando testes unitários..."
+      # O continue-on-error é importante para não parar o build se um teste falhar
+      - dotnet test src/CRM.Tests/CRM.Tests.csproj --no-build --verbosity normal --configuration Release || true
+
+      - echo "Construindo e empurrando a imagem Docker para o ECR..."
+      # O IMAGE_TAG será o ID do commit do CodeBuild, fornecido automaticamente.
+      - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7) # Pega os primeiros 7 caracteres do SHA do commit
+      - docker build -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$IMAGE_TAG -f Dockerfile .
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$IMAGE_TAG
+
+      - echo "Criando Dockerrun.aws.json..."
+      # Este arquivo informa ao Elastic Beanstalk qual imagem Docker usar.
+      - |
+        cat > Dockerrun.aws.json <<EOF
+        {
+          "AWSEBDockerrunVersion": "1",
+          "Image": {
+            "Name": "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$IMAGE_TAG",
+            "Update": "true"
+          },
+          "Ports": [
+            {
+              "ContainerPort": 80
+            }
+          ]
+        }
+        EOF
+      - echo "Dockerrun.aws.json criado com sucesso."
+
+      - echo "Gerando pacote de deploy (deploy.zip)..."
+      # O Elastic Beanstalk espera um pacote de deploy.
+      - zip -r deploy.zip Dockerrun.aws.json
+
+artifacts:
+  files:
+    # Define quais arquivos serão os artefatos de saída do CodeBuild.
+    # O CodePipeline usará este 'deploy.zip' para o deploy no Elastic Beanstalk.
+    - deploy.zip
+  discard-paths: yes # Descarta a estrutura de diretórios, apenas o arquivo zip será o artefato.

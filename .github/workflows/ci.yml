@@ -141,7 +141,7 @@ jobs:
             Link do Workflow: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
           to: ${{ secrets.MAIL_RECIPIENT_EMAIL }} # E-mail para quem receberá a notificação
           from: GitHub Actions <${{ secrets.MAIL_USERNAME }}> # Nome e e-mail do remetente
-          secure: true # Use 'true' para TLS/STARTTLS
+          enable_starttls: true # Use 'true' para TLS/STARTTLS
 
       - name: Enviar Notificação por E-mail (Falha)
         # Este passo só será executado se o deploy for na branch 'master' E o job falhar.
@@ -161,4 +161,4 @@ jobs:
             Verifique os logs para mais detalhes.
           to: ${{ secrets.MAIL_RECIPIENT_EMAIL }}
           from: GitHub Actions <${{ secrets.MAIL_USERNAME }}>
-          secure: true
+          enable_starttls: true

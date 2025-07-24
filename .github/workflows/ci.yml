@@ -1,4 +1,4 @@
-name: Deploy API .NET para AWS Elastic Beanstalk (via AWS CLI)
+name: Deploy API .NET para AWS Elastic Beanstalk
 
 on:
   push:
@@ -24,7 +24,19 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v4
 
-      - name: Configurar .NET SDK
+      - name: Listar arquivos para depuração
+        run: |
+          echo "Conteúdo da raiz do repositório:"
+          ls -F
+          echo "Conteúdo de src/:"
+          ls -F src/
+          echo "Conteúdo de src/CRM.API/:"
+          ls -F src/CRM.API/ || true
+          echo "Conteúdo de src/CRM.Tests/:"
+          ls -F src/CRM.Tests/ || true
+        shell: bash
+
+      - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
@@ -32,12 +44,12 @@ jobs:
       - name: Restaurar dependências
         run: dotnet restore src/CRM-API.sln
 
-      - name: Build da API
+      - name: Build da API e Testes
         run: dotnet build src/CRM-API.sln --no-restore --configuration Release
 
-      - name: Executar Testes Unitários
+      - name: Testar API (se houver testes unitários)
         run: dotnet test src/CRM.Tests/CRM.Tests.csproj --no-build --verbosity normal --configuration Release
-        continue-on-error: true # Permite que o workflow continue mesmo se os testes falharem
+        continue-on-error: true
 
       - name: Configurar credenciais AWS (via OIDC)
         uses: aws-actions/configure-aws-credentials@v4
@@ -55,56 +67,21 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         working-directory: .
         run: |
-          # Build e push com a tag SHA do commit
+          # O Dockerfile deve estar na raiz do seu repositório ou você precisa especificar o caminho
           docker build -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_NAME }}:$IMAGE_TAG -f Dockerfile .
           docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_NAME }}:$IMAGE_TAG
-
-          # Também tag com :latest e push (para que o EB sempre puxe a última)
-          docker tag $ECR_REGISTRY/${{ env.ECR_REPOSITORY_NAME }}:$IMAGE_TAG $ECR_REGISTRY/${{ env.ECR_REPOSITORY_NAME }}:latest
-          docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_NAME }}:latest
         shell: bash
 
-      - name: Instalar AWS Elastic Beanstalk CLI
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y python3-pip
-          pip3 install awsebcli --upgrade --user
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-        shell: bash
-
-      - name: Criar Dockerrun.aws.json
-        id: create-dockerrun
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          # Usamos a tag :latest no Dockerrun.aws.json para que o EB sempre puxe a última
-          IMAGE_TAG_FOR_EB: latest 
-        run: |
-          cat > Dockerrun.aws.json <<EOF
-          {
-            "AWSEBDockerrunVersion": "1",
-            "Image": {
-              "Name": "${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY_NAME }}:${{ env.IMAGE_TAG_FOR_EB }}",
-              "Update": "true"
-            },
-            "Ports": [
-              {
-                "ContainerPort": 80
-              }
-            ],
-            "Logging": "/var/log/nginx"
-          }
-          EOF
-          echo "Dockerrun.aws.json criado com sucesso."
-        shell: bash
-
-      - name: Gerar pacote de deploy
-        run: |
-          zip -r deploy.zip Dockerrun.aws.json
-        shell: bash
-
-      - name: Deploy para AWS Elastic Beanstalk (via AWS CLI)
-        run: |
-          eb init ${{ env.EB_APPLICATION_NAME }} --region ${{ env.AWS_REGION }} --platform docker --no-verify-ssl
-          eb use ${{ env.EB_ENVIRONMENT_NAME }}
-          eb deploy --label ${{ github.sha }}
-        shell: bash
+      - name: Deploy para AWS Elastic Beanstalk
+        uses: aws-actions/elasticbeanstalk-deploy@v1
+        with:
+          application_name: ${{ env.EB_APPLICATION_NAME }}
+          environment_name: ${{ env.EB_ENVIRONMENT_NAME }}
+          version_label: ${{ github.sha }}
+          # O Elastic Beanstalk usará o Dockerfile na raiz do seu repositório.
+          # As variáveis de ambiente são configuradas diretamente no ambiente EB
+          # ou podem ser passadas aqui se forem específicas da versão.
+          # Para as variáveis do DB, é melhor configurá-las no ambiente EB diretamente
+          # ou passá-las via `option_settings` se forem dinâmicas por deploy.
+          # Por simplicidade inicial, vamos configurar no EB e depois no pipeline se necessário.
+          region: ${{ env.AWS_REGION }}

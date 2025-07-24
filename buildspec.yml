@@ -1,7 +1,6 @@
 version: 0.2
 
 # Define as variáveis de ambiente que serão usadas no build.
-# AWS_ACCOUNT_ID será preenchido automaticamente pelo CodeBuild.
 env:
   variables:
     AWS_REGION: us-east-2 # Sua região AWS
@@ -12,7 +11,8 @@ phases:
     commands:
       # Instala o .NET SDK 8.0. O CodeBuild já tem algumas imagens com o .NET,
       # mas esta etapa garante que a versão correta esteja disponível.
-      # Para imagens Ubuntu, dotnet-sdk-8.0 deve ser suficiente.
+      # Para imagens Ubuntu (como aws/codebuild/standard:7.0), 'apt-get' é compatível.
+      # Se a imagem do CodeBuild já tiver o .NET SDK 8.0, esta etapa pode ser otimizada ou removida.
       - echo "Instalando .NET SDK..."
       - apt-get update -y
       - apt-get install -y dotnet-sdk-8.0
@@ -23,6 +23,12 @@ phases:
 
   pre_build:
     commands:
+      # NOVO: Recupera o ID da conta AWS dinamicamente.
+      # Isso garante que a variável AWS_ACCOUNT_ID esteja correta para o login no ECR.
+      - echo "Recuperando AWS_ACCOUNT_ID..."
+      - export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+      - echo "AWS_ACCOUNT_ID: $AWS_ACCOUNT_ID" # Para depuração nos logs
+
       # Configura o login no Amazon ECR.
       # O CodeBuild usa as credenciais da sua role de serviço para autenticar.
       - echo "Fazendo login no Amazon ECR..."
@@ -38,7 +44,7 @@ phases:
 
       - echo "Executando testes unitários..."
       # IMPORTANTE: Se os testes falharem, o CodeBuild falhará neste ponto,
-      # interrompendo o pipeline do CodePipeline.
+      # interrompendo o pipeline do CodePipeline. Isso é um comportamento esperado para CI.
       - dotnet test src/CRM.Tests/CRM.Tests.csproj --no-build --verbosity normal --configuration Release
 
       - echo "Construindo e empurrando a imagem Docker para o ECR..."
@@ -54,6 +60,7 @@ phases:
       - echo "Criando Dockerrun.aws.json..."
       # Este arquivo informa ao Elastic Beanstalk qual imagem Docker usar.
       # Usamos a tag :latest para que o EB sempre puxe a última imagem.
+      # A estrutura está correta para um ambiente Elastic Beanstalk de contêiner único (AWSEBDockerrunVersion: "1").
       - |
         cat > Dockerrun.aws.json <<EOF
         {
@@ -74,6 +81,7 @@ phases:
 
       - echo "Gerando pacote de deploy (deploy.zip)..."
       # O Elastic Beanstalk espera um pacote de deploy.
+      # Atualmente, inclui apenas o Dockerrun.aws.json. Se precisar de outros arquivos (.ebextensions), adicione-os aqui.
       - zip -r deploy.zip Dockerrun.aws.json
 
 artifacts:

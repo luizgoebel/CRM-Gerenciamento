@@ -1,24 +1,23 @@
 version: 0.2
 
 # Define as variáveis de ambiente que serão usadas no build.
-# Estas variáveis serão configuradas no projeto CodeBuild na AWS.
+# AWS_ACCOUNT_ID será preenchido automaticamente pelo CodeBuild.
 env:
   variables:
     AWS_REGION: us-east-2 # Sua região AWS
     ECR_REPOSITORY_NAME: crm-api-repo # NOME REAL DO SEU REPOSITÓRIO ECR
-    # EB_APPLICATION_NAME e EB_ENVIRONMENT_NAME não são necessários aqui,
-    # pois o deploy será feito diretamente pelo CodePipeline para o Elastic Beanstalk.
 
 phases:
   install:
     commands:
-      # Instala o .NET SDK. O CodeBuild já tem algumas imagens com o .NET,
+      # Instala o .NET SDK 8.0. O CodeBuild já tem algumas imagens com o .NET,
       # mas esta etapa garante que a versão correta esteja disponível.
+      # Para imagens Ubuntu, dotnet-sdk-8.0 deve ser suficiente.
       - echo "Instalando .NET SDK..."
       - apt-get update -y
       - apt-get install -y dotnet-sdk-8.0
 
-      # Instala o utilitário 'zip' se não estiver presente (geralmente já está em imagens CodeBuild)
+      # Instala o utilitário 'zip' se não estiver presente.
       - echo "Instalando utilitário zip..."
       - apt-get install -y zip
 
@@ -38,30 +37,37 @@ phases:
       - dotnet build src/CRM-API.sln --no-restore --configuration Release
 
       - echo "Executando testes unitários..."
-      # O continue-on-error é importante para não parar o build se um teste falhar
-      - dotnet test src/CRM.Tests/CRM.Tests.csproj --no-build --verbosity normal --configuration Release || true
+      # IMPORTANTE: Se os testes falharem, o CodeBuild falhará neste ponto,
+      # interrompendo o pipeline do CodePipeline.
+      - dotnet test src/CRM.Tests/CRM.Tests.csproj --no-build --verbosity normal --configuration Release
 
       - echo "Construindo e empurrando a imagem Docker para o ECR..."
-      # O IMAGE_TAG será o ID do commit do CodeBuild, fornecido automaticamente.
+      # CODEBUILD_RESOLVED_SOURCE_VERSION é uma variável de ambiente do CodeBuild que contém o SHA do commit.
       - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7) # Pega os primeiros 7 caracteres do SHA do commit
       - docker build -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$IMAGE_TAG -f Dockerfile .
       - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$IMAGE_TAG
 
+      # Opcional: Tag com :latest para facilitar o pull pelo Elastic Beanstalk
+      - docker tag $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:latest
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:latest
+
       - echo "Criando Dockerrun.aws.json..."
       # Este arquivo informa ao Elastic Beanstalk qual imagem Docker usar.
+      # Usamos a tag :latest para que o EB sempre puxe a última imagem.
       - |
         cat > Dockerrun.aws.json <<EOF
         {
           "AWSEBDockerrunVersion": "1",
           "Image": {
-            "Name": "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$IMAGE_TAG",
+            "Name": "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:latest",
             "Update": "true"
           },
           "Ports": [
             {
               "ContainerPort": 80
             }
-          ]
+          ],
+          "Logging": "/var/log/nginx"
         }
         EOF
       - echo "Dockerrun.aws.json criado com sucesso."

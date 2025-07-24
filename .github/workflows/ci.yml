@@ -24,9 +24,6 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v4
 
-      # Removido o passo "Listar arquivos para depuração" pois não é necessário em um pipeline de produção.
-      # Se precisar depurar novamente no futuro, pode reativá-lo.
-
       - name: Configurar .NET SDK
         uses: actions/setup-dotnet@v4
         with:
@@ -58,9 +55,13 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         working-directory: .
         run: |
-          # O Dockerfile deve estar na raiz do seu repositório
+          # Build e push com a tag SHA do commit
           docker build -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_NAME }}:$IMAGE_TAG -f Dockerfile .
           docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_NAME }}:$IMAGE_TAG
+
+          # Também tag com :latest e push (para que o EB sempre puxe a última)
+          docker tag $ECR_REGISTRY/${{ env.ECR_REPOSITORY_NAME }}:$IMAGE_TAG $ECR_REGISTRY/${{ env.ECR_REPOSITORY_NAME }}:latest
+          docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_NAME }}:latest
         shell: bash
 
       - name: Instalar AWS Elastic Beanstalk CLI
@@ -68,7 +69,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y python3-pip
           pip3 install awsebcli --upgrade --user
-          # Adiciona o diretório de instalação do pip ao PATH para que o 'eb' seja encontrado
           echo "$HOME/.local/bin" >> $GITHUB_PATH
         shell: bash
 
@@ -76,23 +76,22 @@ jobs:
         id: create-dockerrun
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
+          # Usamos a tag :latest no Dockerrun.aws.json para que o EB sempre puxe a última
+          IMAGE_TAG_FOR_EB: latest 
         run: |
-          # O Dockerrun.aws.json é um arquivo de configuração do Elastic Beanstalk,
-          # não faz parte da imagem Docker. Ele informa ao EB qual imagem Docker
-          # deve ser puxada do ECR para rodar a aplicação.
           cat > Dockerrun.aws.json <<EOF
           {
             "AWSEBDockerrunVersion": "1",
             "Image": {
-              "Name": "${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY_NAME }}:${{ env.IMAGE_TAG }}",
+              "Name": "${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY_NAME }}:${{ env.IMAGE_TAG_FOR_EB }}",
               "Update": "true"
             },
             "Ports": [
               {
                 "ContainerPort": 80
               }
-            ]
+            ],
+            "Logging": "/var/log/nginx"
           }
           EOF
           echo "Dockerrun.aws.json criado com sucesso."
@@ -100,16 +99,12 @@ jobs:
 
       - name: Gerar pacote de deploy
         run: |
-          # Cria um arquivo .zip contendo o Dockerrun.aws.json.
-          # O Elastic Beanstalk espera um pacote de deploy neste formato.
           zip -r deploy.zip Dockerrun.aws.json
         shell: bash
 
       - name: Deploy para AWS Elastic Beanstalk (via AWS CLI)
         run: |
-          # Configura o EB CLI para a sua aplicação e ambiente.
           eb init ${{ env.EB_APPLICATION_NAME }} --region ${{ env.AWS_REGION }} --platform docker --no-verify-ssl
           eb use ${{ env.EB_ENVIRONMENT_NAME }}
-          # Realiza o deploy do pacote .zip com a nova versão da aplicação.
           eb deploy --label ${{ github.sha }}
         shell: bash

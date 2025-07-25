@@ -15,10 +15,17 @@ phases:
       - echo "Instalando utilitário zip..."
       - apt-get install -y zip
 
+      # NOVO: Comando de depuração para listar o conteúdo da pasta src
+      - echo "Listando conteúdo de src/ para depuração..."
+      - ls -F src/
+
   pre_build:
     commands:
       - echo "Recuperando AWS_ACCOUNT_ID..."
       - export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+
+      - echo "Fazendo login no Amazon ECR..."
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
 
   build:
     commands:

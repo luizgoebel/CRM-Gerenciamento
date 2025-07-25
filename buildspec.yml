@@ -15,15 +15,8 @@ phases:
       - echo "Instalando utilitário zip..."
       - apt-get install -y zip
 
-      # NOVO: Comando de depuração para listar o conteúdo da pasta src
-      - echo "Listando conteúdo de src/ para depuração..."
-      - ls -F src/
-
   pre_build:
     commands:
-      - echo "Recuperando AWS_ACCOUNT_ID..."
-      - export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-
       - echo "Fazendo login no Amazon ECR..."
       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
 
@@ -47,7 +40,22 @@ phases:
       - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:latest
 
       - echo "Criando Dockerrun.aws.json..."
-      - echo '{"AWSEBDockerrunVersion":"1","Image":{"Name":"'$AWS_ACCOUNT_ID'.dkr.ecr.'$AWS_REGION'.amazonaws.com/'$ECR_REPOSITORY_NAME':latest","Update":"true"},"Ports":[{"ContainerPort":80}],"Logging":"/var/log/nginx"}' > Dockerrun.aws.json
+      - |
+        cat > Dockerrun.aws.json <<EOF
+        {
+          "AWSEBDockerrunVersion": "1",
+          "Image": {
+            "Name": "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:latest",
+            "Update": "true"
+          },
+          "Ports": [
+            {
+              "ContainerPort": 80
+            }
+          ],
+          "Logging": "/var/log/nginx"
+        }
+        EOF
       - echo "Dockerrun.aws.json criado com sucesso."
 
       - echo "Gerando pacote de deploy (deploy.zip)..."

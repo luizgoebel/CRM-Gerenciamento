@@ -20,9 +20,11 @@ phases:
   pre_build:
     commands:
       - echo "Fazendo login no Amazon ECR..."
-      - echo "AWS_ACCOUNT_ID: $AWS_ACCOUNT_ID" 
-      - echo "AWS_REGION: $AWS_REGION" 
-      - bash -c "aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
+      - echo "AWS_ACCOUNT_ID: $AWS_ACCOUNT_ID" # Para depuração
+      - echo "AWS_REGION: $AWS_REGION" # Para depuração
+      # CORRIGIDO: Dividindo o comando de login do Docker em duas etapas para evitar problemas de parsing YAML
+      - export ECR_PASSWORD=$(aws ecr get-login-password --region $AWS_REGION)
+      - docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com <<< $ECR_PASSWORD
 
   build:
     commands:

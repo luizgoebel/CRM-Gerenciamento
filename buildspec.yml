@@ -41,22 +41,7 @@ phases:
       - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:latest
 
       - echo "Criando Dockerrun.aws.json..."
-      - |
-        cat > Dockerrun.aws.json <<EOF
-        {
-          "AWSEBDockerrunVersion": "1",
-          "Image": {
-            "Name": "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:latest",
-            "Update": "true"
-          },
-          "Ports": [
-            {
-              "ContainerPort": 80
-            }
-          ],
-          "Logging": "/var/log/nginx"
-        }
-        EOF
+      - echo '{"AWSEBDockerrunVersion":"1","Image":{"Name":"'$AWS_ACCOUNT_ID'.dkr.ecr.'$AWS_REGION'.amazonaws.com/'$ECR_REPOSITORY_NAME':latest","Update":"true"},"Ports":[{"ContainerPort":80}],"Logging":"/var/log/nginx"}' > Dockerrun.aws.json
       - echo "Dockerrun.aws.json criado com sucesso."
 
       - echo "Gerando pacote de deploy (deploy.zip)..."

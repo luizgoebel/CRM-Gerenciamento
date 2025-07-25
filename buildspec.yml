@@ -4,8 +4,9 @@ version: 0.2
 # AWS_ACCOUNT_ID será preenchido automaticamente pelo CodeBuild.
 env:
   variables:
-    AWS_REGION: us-east-2 # Sua região AWS
-    ECR_REPOSITORY_NAME: crm-api-repo # NOME REAL DO SEU REPOSITÓRIO ECR
+    AWS_REGION: us-east-2
+    AWS_ACCOUNT_ID: 679625722040
+    ECR_REPOSITORY_NAME: crm-api-repo
 
 phases:
   install:
@@ -23,15 +24,9 @@ phases:
 
   pre_build:
     commands:
-      # Configura o login no Amazon ECR.
-      # O CodeBuild usa as credenciais da sua role de serviço para autenticar.
-      - echo "Recuperando AWS_ACCOUNT_ID..."
-      - export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-      - echo "AWS_ACCOUNT_ID: $AWS_ACCOUNT_ID" # Para depuração nos logs
-
-      # Configura o login no Amazon ECR.
-      # O CodeBuild usa as credenciais da sua role de serviço para autenticar.
       - echo "Fazendo login no Amazon ECR..."
+      - echo "AWS_ACCOUNT_ID: $AWS_ACCOUNT_ID"
+      - echo "AWS_REGION: $AWS_REGION"
       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
 
   build:

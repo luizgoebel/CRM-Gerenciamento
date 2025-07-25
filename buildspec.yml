@@ -23,9 +23,11 @@ phases:
 
   build:
     commands:
-      - echo "Verificando estrutura de arquivos..."
+      - echo "Verificando estrutura completa de arquivos..."
+      - find . -name "*.sln"
+      - echo "Verificando estrutura de 'src'..."
       - ls -la src
-      
+
       - echo "Restaurando dependências .NET..."
       - dotnet restore src/CRM-API.sln
 

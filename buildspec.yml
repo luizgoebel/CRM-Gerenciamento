@@ -40,8 +40,8 @@ phases:
       - dotnet test src/CRM.Tests/CRM.Tests.csproj --no-build --verbosity normal --configuration Release || exit 1
 
       - echo "Preparando imagem Docker para o ECR..."
-      - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
-
+      - |
+        IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
       - echo "Build da imagem com tag: $IMAGE_TAG"
       - docker build -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$IMAGE_TAG -f Dockerfile . || exit 1
 

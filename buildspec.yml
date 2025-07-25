@@ -3,6 +3,7 @@ version: 0.2
 env:
   variables:
     AWS_REGION: us-east-2
+    AWS_ACCOUNT_ID: 679625722040
     ECR_REPOSITORY_NAME: crm-api-repo
 
 phases:

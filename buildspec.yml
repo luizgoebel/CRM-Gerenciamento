@@ -1,36 +1,26 @@
 version: 0.2
 
-# Define as variáveis de ambiente que serão usadas no build.
 env:
   variables:
-    AWS_REGION: us-east-2 # Sua região AWS
-    ECR_REPOSITORY_NAME: crm-api-repo # NOME REAL DO SEU REPOSITÓRIO ECR
+    AWS_REGION: us-east-2
+    ECR_REPOSITORY_NAME: crm-api-repo
 
 phases:
   install:
     commands:
-      # Instala o .NET SDK 8.0. O CodeBuild já tem algumas imagens com o .NET,
-      # mas esta etapa garante que a versão correta esteja disponível.
-      # Para imagens Ubuntu (como aws/codebuild/standard:7.0), 'apt-get' é compatível.
-      # Se a imagem do CodeBuild já tiver o .NET SDK 8.0, esta etapa pode ser otimizada ou removida.
       - echo "Instalando .NET SDK..."
       - apt-get update -y
       - apt-get install -y dotnet-sdk-8.0
 
-      # Instala o utilitário 'zip' se não estiver presente.
       - echo "Instalando utilitário zip..."
       - apt-get install -y zip
 
   pre_build:
     commands:
-      # NOVO: Recupera o ID da conta AWS dinamicamente.
-      # Isso garante que a variável AWS_ACCOUNT_ID esteja correta para o login no ECR.
       - echo "Recuperando AWS_ACCOUNT_ID..."
       - export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-      - echo "AWS_ACCOUNT_ID: $AWS_ACCOUNT_ID" # Para depuração nos logs
+      - echo "AWS_ACCOUNT_ID: $AWS_ACCOUNT_ID"
 
-      # Configura o login no Amazon ECR.
-      # O CodeBuild usa as credenciais da sua role de serviço para autenticar.
       - echo "Fazendo login no Amazon ECR..."
       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
 
@@ -43,24 +33,17 @@ phases:
       - dotnet build src/CRM-API.sln --no-restore --configuration Release
 
       - echo "Executando testes unitários..."
-      # IMPORTANTE: Se os testes falharem, o CodeBuild falhará neste ponto,
-      # interrompendo o pipeline do CodePipeline. Isso é um comportamento esperado para CI.
       - dotnet test src/CRM.Tests/CRM.Tests.csproj --no-build --verbosity normal --configuration Release
 
       - echo "Construindo e empurrando a imagem Docker para o ECR..."
-      # CODEBUILD_RESOLVED_SOURCE_VERSION é uma variável de ambiente do CodeBuild que contém o SHA do commit.
-      - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7) # Pega os primeiros 7 caracteres do SHA do commit
+      - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
       - docker build -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$IMAGE_TAG -f Dockerfile .
       - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$IMAGE_TAG
 
-      # Opcional: Tag com :latest para facilitar o pull pelo Elastic Beanstalk
       - docker tag $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:latest
       - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:latest
 
       - echo "Criando Dockerrun.aws.json..."
-      # Este arquivo informa ao Elastic Beanstalk qual imagem Docker usar.
-      # Usamos a tag :latest para que o EB sempre puxe a última imagem.
-      # A estrutura está correta para um ambiente Elastic Beanstalk de contêiner único (AWSEBDockerrunVersion: "1").
       - |
         cat > Dockerrun.aws.json <<EOF
         {
@@ -80,13 +63,9 @@ phases:
       - echo "Dockerrun.aws.json criado com sucesso."
 
       - echo "Gerando pacote de deploy (deploy.zip)..."
-      # O Elastic Beanstalk espera um pacote de deploy.
-      # Atualmente, inclui apenas o Dockerrun.aws.json. Se precisar de outros arquivos (.ebextensions), adicione-os aqui.
       - zip -r deploy.zip Dockerrun.aws.json
 
 artifacts:
   files:
-    # Define quais arquivos serão os artefatos de saída do CodeBuild.
-    # O CodePipeline usará este 'deploy.zip' para o deploy no Elastic Beanstalk.
     - deploy.zip
-  discard-paths: yes # Descarta a estrutura de diretórios, apenas o arquivo zip será o artefato.
+  discard-paths: yes

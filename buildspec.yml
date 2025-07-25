@@ -44,17 +44,22 @@ phases:
       - docker tag $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:latest
       - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:latest
       - echo "Gerando arquivo Dockerrun.aws.json..."
-      - echo '{' > Dockerrun.aws.json
-      - echo '  "AWSEBDockerrunVersion": "1",' >> Dockerrun.aws.json
-      - echo '  "Image": {' >> Dockerrun.aws.json
-      - echo '    "Name": "'$AWS_ACCOUNT_ID'.dkr.ecr.'$AWS_REGION'.amazonaws.com/'$ECR_REPOSITORY_NAME':latest",' >> Dockerrun.aws.json
-      - echo '    "Update": "true"' >> Dockerrun.aws.json
-      - echo '  },' >> Dockerrun.aws.json
-      - echo '  "Ports": [' >> Dockerrun.aws.json
-      - echo '    { "ContainerPort": 80 }' >> Dockerrun.aws.json
-      - echo '  ],' >> Dockerrun.aws.json
-      - echo '  "Logging": "/var/log/nginx"' >> Dockerrun.aws.json
-      - echo '}' >> Dockerrun.aws.json
+      - |
+        cat > Dockerrun.aws.json <<EOF
+        {
+          "AWSEBDockerrunVersion": "1",
+          "Image": {
+            "Name": "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:latest",
+            "Update": "true"
+          },
+          "Ports": [
+            {
+              "ContainerPort": 80
+            }
+          ],
+          "Logging": "/var/log/nginx"
+        }
+        EOF
       - echo "Compactando pacote de deploy..."
       - zip -r deploy.zip Dockerrun.aws.json
 

@@ -31,23 +31,24 @@ phases:
   build:
     commands:
       - echo "Restaurando dependências .NET para a solução principal..."
-      - dotnet restore src/CRM-API.sln || exit 1
+      - dotnet restore src/CRM-API.sln
 
       - echo "Compilando solução principal CRM-API.sln..."
-      - dotnet build src/CRM-API.sln --no-restore --configuration Release || exit 1
+      - dotnet build src/CRM-API.sln --no-restore --configuration Release
 
       - echo "Executando testes unitários..."
-      - dotnet test src/CRM.Tests/CRM.Tests.csproj --no-build --verbosity normal --configuration Release || exit 1
+      - dotnet test src/CRM.Tests/CRM.Tests.csproj --no-build --verbosity normal --configuration Release
 
       - echo "Preparando imagem Docker para o ECR..."
-      - echo "Build da imagem com tag: $(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)"
-      - docker build -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7) -f Dockerfile . || exit 1
+      - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - echo "Build da imagem com tag: $IMAGE_TAG"
+      - docker build -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$IMAGE_TAG -f Dockerfile .
 
-      - echo "Enviando imagem com tag: $(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)"
-      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - echo "Enviando imagem com tag: $IMAGE_TAG"
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$IMAGE_TAG
 
       - echo "Tag 'latest' sendo aplicada..."
-      - docker tag $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7) $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:latest
+      - docker tag $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:latest
       - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:latest
 
       - echo "Gerando arquivo Dockerrun.aws.json..."

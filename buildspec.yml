@@ -23,8 +23,8 @@ phases:
 
   pre_build:
     commands:
-      # NOVO: Recupera o ID da conta AWS dinamicamente.
-      # Isso garante que a variável AWS_ACCOUNT_ID esteja correta para o login no ECR.
+      # Configura o login no Amazon ECR.
+      # O CodeBuild usa as credenciais da sua role de serviço para autenticar.
       - echo "Recuperando AWS_ACCOUNT_ID..."
       - export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
       - echo "AWS_ACCOUNT_ID: $AWS_ACCOUNT_ID" # Para depuração nos logs

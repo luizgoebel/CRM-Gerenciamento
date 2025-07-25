@@ -27,8 +27,6 @@ phases:
     commands:
       - echo "Realizando login no Amazon ECR..."
       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
-      - export IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
-      - echo "IMAGE_TAG definida: $IMAGE_TAG" 
 
   build:
     commands:
@@ -42,14 +40,14 @@ phases:
       - dotnet test src/CRM.Tests/CRM.Tests.csproj --no-build --verbosity normal --configuration Release || exit 1
 
       - echo "Preparando imagem Docker para o ECR..."
-      - echo "Build da imagem com tag: $IMAGE_TAG"
-      - docker build -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$IMAGE_TAG -f Dockerfile . || exit 1
+      - echo "Build da imagem com tag: $(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)"
+      - docker build -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7) -f Dockerfile . || exit 1
 
-      - echo "Enviando imagem com tag: $IMAGE_TAG"
-      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$IMAGE_TAG
+      - echo "Enviando imagem com tag: $(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)"
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
 
       - echo "Tag 'latest' sendo aplicada..."
-      - docker tag $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:latest
+      - docker tag $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7) $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:latest
       - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:latest
 
       - echo "Gerando arquivo Dockerrun.aws.json..."

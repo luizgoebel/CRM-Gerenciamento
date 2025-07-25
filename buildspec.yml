@@ -15,6 +15,7 @@ phases:
       - echo "Instalando utilitário zip..."
       - apt-get install -y zip
 
+      # Comandos de depuração (opcional, pode remover na versão final)
       - echo "Listando conteúdo da raiz do diretório de trabalho do CodeBuild:"
       - ls -F .
       - echo "Listando conteúdo de src/ (se existir):"
@@ -26,10 +27,13 @@ phases:
       - export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 
       - echo "Fazendo login no Amazon ECR..."
+      # CORRIGIDO: Usando 'bash -c' para envolver o comando de login no ECR
       - bash -c "aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
 
   build:
     commands:
+      # Copia todo o conteúdo da raiz do repositório para um diretório temporário
+      # e muda para ele. Isso garante que o contexto de build seja consistente.
       - cp -R . /tmp/build_src/
       - cd /tmp/build_src/
 
@@ -56,6 +60,8 @@ phases:
 
       - echo "Gerando pacote de deploy (deploy.zip)..."
       - zip -r deploy.zip Dockerrun.aws.json
+      # NOVO: Copia o deploy.zip para o diretório raiz do CodeBuild
+      - mv deploy.zip /codebuild/output/src110233707/src/deploy.zip # Ajuste o caminho de destino para o CODEBUILD_SRC_DIR
 
 artifacts:
   files:

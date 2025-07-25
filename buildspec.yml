@@ -23,11 +23,14 @@ phases:
 
   build:
     commands:
+      - echo "Verificando estrutura de arquivos..."
+      - ls -la src
+      
       - echo "Restaurando dependências .NET..."
-      - dotnet restore src/CRM.API/CRM-API.sln
+      - dotnet restore src/CRM-API.sln
 
       - echo "Construindo a API .NET..."
-      - dotnet build src/CRM.API/CRM-API.sln --no-restore --configuration Release
+      - dotnet build src/CRM-API.sln --no-restore --configuration Release
 
       - echo "Executando testes unitários..."
       - dotnet test src/CRM.Tests/CRM.Tests.csproj --no-build --verbosity normal --configuration Release

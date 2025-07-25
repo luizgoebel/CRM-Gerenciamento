@@ -19,7 +19,6 @@ phases:
     commands:
       - echo "Recuperando AWS_ACCOUNT_ID..."
       - export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-      - echo "AWS_ACCOUNT_ID: $AWS_ACCOUNT_ID"
 
   build:
     commands:

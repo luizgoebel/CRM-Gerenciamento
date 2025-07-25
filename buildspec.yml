@@ -32,12 +32,11 @@ phases:
 
   build:
     commands:
-      # Copia todo o conteúdo da raiz do repositório para um diretório temporário
-      # e muda para ele. Isso garante que o contexto de build seja consistente.
-      - cp -R . /tmp/build_src/
-      - cd /tmp/build_src/
+      # REMOVIDO: A cópia para um diretório temporário e a mudança para ele.
+      # Todos os comandos agora serão executados a partir do diretório raiz do CodeBuild.
 
       - echo "Restaurando dependências .NET..."
+      # O caminho para a solução é relativo à raiz do repositório
       - dotnet restore src/CRM-API.sln
 
       - echo "Construindo a API .NET..."
@@ -48,6 +47,7 @@ phases:
 
       - echo "Construindo e empurrando a imagem Docker para o ECR..."
       - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      # O Dockerfile deve estar na raiz do repositório
       - docker build -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$IMAGE_TAG -f Dockerfile .
       - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$IMAGE_TAG
 
@@ -55,13 +55,14 @@ phases:
       - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:latest
 
       - echo "Criando Dockerrun.aws.json..."
+      # O Dockerrun.aws.json será criado diretamente na raiz do diretório de trabalho do CodeBuild
       - echo '{"AWSEBDockerrunVersion":"1","Image":{"Name":"'$AWS_ACCOUNT_ID'.dkr.ecr.'$AWS_REGION'.amazonaws.com/'$ECR_REPOSITORY_NAME':latest","Update":"true"},"Ports":[{"ContainerPort":80}],"Logging":"/var/log/nginx"}' > Dockerrun.aws.json
       - echo "Dockerrun.aws.json criado com sucesso."
 
       - echo "Gerando pacote de deploy (deploy.zip)..."
+      # O deploy.zip será criado diretamente na raiz do diretório de trabalho do CodeBuild
       - zip -r deploy.zip Dockerrun.aws.json
-      # NOVO: Copia o deploy.zip para o diretório raiz do CodeBuild
-      - mv deploy.zip /codebuild/output/src110233707/src/deploy.zip # Ajuste o caminho de destino para o CODEBUILD_SRC_DIR
+      # REMOVIDO: O comando 'mv' não é mais necessário, pois o deploy.zip já está no lugar certo.
 
 artifacts:
   files:

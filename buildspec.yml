@@ -8,61 +8,39 @@ env:
 
 phases:
   install:
-    runtime-versions:
-      docker: 20
     commands:
-      - echo "Atualizando pacotes e instalando .NET SDK 8.0..."
-      - apt-get update -y
-      - apt-get install -y apt-transport-https
-      - wget https://packages.microsoft.com/config/debian/11/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
-      - dpkg -i packages-microsoft-prod.deb
+      - echo "Instalando .NET SDK..."
       - apt-get update -y
       - apt-get install -y dotnet-sdk-8.0
-      - dotnet --version
 
       - echo "Instalando utilitário zip..."
       - apt-get install -y zip
 
   pre_build:
     commands:
-      - echo "Realizando login no Amazon ECR..."
+      - echo "Fazendo login no Amazon ECR..."
       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
 
   build:
     commands:
-      - echo "Localizando soluções (.sln) no projeto..."
-      - find . -name "*.sln"
+      - echo "Restaurando dependências .NET..."
+      - dotnet restore CRM-API.sln
 
-      - echo "Conteúdo da pasta src:"
-      - ls -la src
-
-      - echo "Restaurando dependências de todas as soluções..."
-      - |
-        for sln in $(find . -name "*.sln"); do
-          echo "Restaurando $sln..."
-          dotnet restore "$sln" || exit 1
-        done
-
-      - echo "Compilando solução principal CRM-API.sln..."
-      - dotnet build CRM-API.sln --no-restore --configuration Release || exit 1
+      - echo "Construindo a API .NET..."
+      - dotnet build CRM-API.sln --no-restore --configuration Release
 
       - echo "Executando testes unitários..."
-      - dotnet test src/CRM.Tests/CRM.Tests.csproj --no-build --verbosity normal --configuration Release || exit 1
+      - dotnet test src/CRM.Tests/CRM.Tests.csproj --no-build --verbosity normal --configuration Release
 
-      - echo "Preparando imagem Docker para o ECR..."
+      - echo "Construindo e empurrando a imagem Docker para o ECR..."
       - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
-
-      - echo "Build da imagem com tag: $IMAGE_TAG"
-      - docker build -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$IMAGE_TAG -f Dockerfile . || exit 1
-
-      - echo "Enviando imagem com tag: $IMAGE_TAG"
+      - docker build -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$IMAGE_TAG -f Dockerfile .
       - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$IMAGE_TAG
 
-      - echo "Tag 'latest' sendo aplicada..."
       - docker tag $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:latest
       - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:latest
 
-      - echo "Gerando arquivo Dockerrun.aws.json..."
+      - echo "Criando Dockerrun.aws.json..."
       - |
         cat > Dockerrun.aws.json <<EOF
         {
@@ -79,10 +57,9 @@ phases:
           "Logging": "/var/log/nginx"
         }
         EOF
+      - echo "Dockerrun.aws.json criado com sucesso."
 
-      - echo "Arquivo Dockerrun.aws.json criado com sucesso!"
-
-      - echo "Compactando pacote de deploy..."
+      - echo "Gerando pacote de deploy (deploy.zip)..."
       - zip -r deploy.zip Dockerrun.aws.json
 
 artifacts:

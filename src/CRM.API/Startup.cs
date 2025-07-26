@@ -4,6 +4,11 @@ using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using System.Globalization;
+using System;
+using System.Threading;
+using System.Threading.Tasks; // Adicionado para Task.Delay e async/await
+using CRM.Application; // Adicionado para Dependencias
+using CRM.Infrastructure; // Adicionado para Dependencias
 
 namespace CRM.API;
 
@@ -59,6 +64,7 @@ public class Startup
                 {
                     m.MigrationsAssembly("CRM.Infrastructure");
                     m.CommandTimeout(50000);
+                    // Manter o retry on failure para a conexão inicial
                     m.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
                 })
             .LogTo(s => System.Diagnostics.Debug.WriteLine(s))
@@ -81,29 +87,54 @@ public class Startup
         });
     }
 
-    public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+    // O método Configure agora é assíncrono para permitir o uso de 'await'
+    public async void Configure(IApplicationBuilder app, IWebHostEnvironment env)
     {
+        // ----- INÍCIO: Lógica para aplicar migrações (reintroduzida com retry) -----
+        const int maxRetries = 5;
+        const int delayMilliseconds = 5000; // 5 segundos
+
+        for (int i = 0; i < maxRetries; i++)
+        {
+            using (var scope = app.ApplicationServices.CreateScope())
+            {
+                var services = scope.ServiceProvider;
+                try
+                {
+                    var dbContext = services.GetRequiredService<CrmDbContext>();
+                    // Aguarda a conclusão das migrações
+                    await dbContext.Database.MigrateAsync();
+                    Console.WriteLine("Migrações do banco de dados aplicadas com sucesso.");
+                    break; // Sai do loop se as migrações forem aplicadas
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"Tentativa {i + 1}/{maxRetries}: Ocorreu um erro ao aplicar as migrações do banco de dados: {ex.Message}");
+                    Console.Error.WriteLine(ex.StackTrace);
+
+                    if (i < maxRetries - 1)
+                    {
+                        Console.WriteLine($"Aguardando {delayMilliseconds / 1000} segundos antes de tentar novamente...");
+                        Thread.Sleep(delayMilliseconds); // Espera antes da próxima tentativa
+                    }
+                    else
+                    {
+                        Console.Error.WriteLine("Todas as tentativas de aplicar migrações falharam. A aplicação pode não funcionar corretamente.");
+                        // Não relançamos a exceção aqui para permitir que a aplicação tente iniciar,
+                        // mas os logs indicarão a falha das migrações.
+                    }
+                }
+            }
+        }
+        // ----- FIM: Lógica para aplicar migrações -----
+
         var supportedCultures = new[] { new CultureInfo("pt-BR") };
         app.UseRequestLocalization(new RequestLocalizationOptions
         {
-            DefaultRequestCulture = new RequestCulture("pt-BR"),
+            DefaultRequestCulture = new RequestCulture(supportedCultures[0]), // Alterado aqui
             SupportedCultures = supportedCultures,
             SupportedUICultures = supportedCultures
         });
-
-        using (var scope = app.ApplicationServices.CreateScope())
-        {
-            var services = scope.ServiceProvider;
-            try
-            {
-                var dbContext = services.GetRequiredService<CrmDbContext>();
-                dbContext.Database.MigrateAsync();
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-        }
 
         if (env.IsDevelopment())
         {

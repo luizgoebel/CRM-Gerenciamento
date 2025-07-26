@@ -55,7 +55,7 @@ phases:
       - echo "Dockerrun.aws.json criado com sucesso."
 
       - echo "Gerando pacote de deploy (deploy.zip)..."
-      - zip -r deploy.zip Dockerrun.aws.json .platform/
+      - zip -r deploy.zip Dockerrun.aws.json
 
 artifacts:
   files:

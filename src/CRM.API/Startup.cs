@@ -6,17 +6,21 @@ using Microsoft.OpenApi.Models;
 using System.Globalization;
 using System;
 using System.Threading;
-using System.Threading.Tasks; // Adicionado para Task.Delay e async/await
-using CRM.Application; // Adicionado para Dependencias
-using CRM.Infrastructure; // Adicionado para Dependencias
+using System.Threading.Tasks;
+using CRM.Application;
+using CRM.Infrastructure;
+using Microsoft.Extensions.Logging; // Adicionado para ILogger
 
 namespace CRM.API;
 
 public class Startup
 {
-    public Startup(IConfiguration configuration)
+    private readonly ILogger<Startup> _logger; // Adicionado logger
+
+    public Startup(IConfiguration configuration, ILogger<Startup> logger) // Injetar ILogger
     {
         Configuration = configuration;
+        _logger = logger; // Atribuir logger
     }
 
     public IConfiguration Configuration { get; }
@@ -24,6 +28,7 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services, IWebHostEnvironment env)
     {
+        _logger.LogInformation("ConfigureServices: Iniciando configuração dos serviços."); // Log
         services.AddMemoryCache();
 
         services.AddControllers()
@@ -52,10 +57,12 @@ public class Startup
         });
 
         AdicionarSwagger(services);
+        _logger.LogInformation("ConfigureServices: Configuração dos serviços concluída."); // Log
     }
 
     private void RegistrarContextos(IServiceCollection services, IWebHostEnvironment env)
     {
+        _logger.LogInformation("RegistrarContextos: Registrando DbContext."); // Log
         services.AddDbContext<CrmDbContext>(options =>
         {
             options.UseMySql(dadosConexao,
@@ -64,7 +71,6 @@ public class Startup
                 {
                     m.MigrationsAssembly("CRM.Infrastructure");
                     m.CommandTimeout(50000);
-                    // Manter o retry on failure para a conexão inicial
                     m.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
                 })
             .LogTo(s => System.Diagnostics.Debug.WriteLine(s))
@@ -72,10 +78,12 @@ public class Startup
             .EnableSensitiveDataLogging(true);
             options.UseLazyLoadingProxies();
         });
+        _logger.LogInformation("RegistrarContextos: DbContext registrado."); // Log
     }
 
     private void AdicionarSwagger(IServiceCollection services)
     {
+        _logger.LogInformation("AdicionarSwagger: Adicionando SwaggerGen."); // Log
         services.AddSwaggerGen(s =>
         {
             s.SwaggerDoc("v1", new OpenApiInfo
@@ -85,11 +93,13 @@ public class Startup
             });
             s.CustomSchemaIds(x => x.FullName);
         });
+        _logger.LogInformation("AdicionarSwagger: SwaggerGen adicionado."); // Log
     }
 
-    // O método Configure agora é assíncrono para permitir o uso de 'await'
     public async void Configure(IApplicationBuilder app, IWebHostEnvironment env)
     {
+        _logger.LogInformation("Configure: Iniciando configuração da aplicação."); // Log
+
         // ----- INÍCIO: Lógica para aplicar migrações (reintroduzida com retry) -----
         const int maxRetries = 5;
         const int delayMilliseconds = 5000; // 5 segundos
@@ -101,27 +111,23 @@ public class Startup
                 var services = scope.ServiceProvider;
                 try
                 {
+                    _logger.LogInformation($"Tentativa {i + 1}/{maxRetries}: Tentando aplicar migrações do banco de dados."); // Log
                     var dbContext = services.GetRequiredService<CrmDbContext>();
-                    // Aguarda a conclusão das migrações
                     await dbContext.Database.MigrateAsync();
-                    Console.WriteLine("Migrações do banco de dados aplicadas com sucesso.");
-                    break; // Sai do loop se as migrações forem aplicadas
+                    _logger.LogInformation("Migrações do banco de dados aplicadas com sucesso."); // Log
+                    break;
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine($"Tentativa {i + 1}/{maxRetries}: Ocorreu um erro ao aplicar as migrações do banco de dados: {ex.Message}");
-                    Console.Error.WriteLine(ex.StackTrace);
-
+                    _logger.LogError(ex, $"Tentativa {i + 1}/{maxRetries}: Ocorreu um erro ao aplicar as migrações do banco de dados."); // Log de erro
                     if (i < maxRetries - 1)
                     {
-                        Console.WriteLine($"Aguardando {delayMilliseconds / 1000} segundos antes de tentar novamente...");
-                        Thread.Sleep(delayMilliseconds); // Espera antes da próxima tentativa
+                        _logger.LogInformation($"Aguardando {delayMilliseconds / 1000} segundos antes de tentar novamente..."); // Log
+                        Thread.Sleep(delayMilliseconds);
                     }
                     else
                     {
-                        Console.Error.WriteLine("Todas as tentativas de aplicar migrações falharam. A aplicação pode não funcionar corretamente.");
-                        // Não relançamos a exceção aqui para permitir que a aplicação tente iniciar,
-                        // mas os logs indicarão a falha das migrações.
+                        _logger.LogError("Todas as tentativas de aplicar migrações falharam. A aplicação pode não funcionar corretamente."); // Log de erro final
                     }
                 }
             }
@@ -131,7 +137,7 @@ public class Startup
         var supportedCultures = new[] { new CultureInfo("pt-BR") };
         app.UseRequestLocalization(new RequestLocalizationOptions
         {
-            DefaultRequestCulture = new RequestCulture(supportedCultures[0]), // Alterado aqui
+            DefaultRequestCulture = new RequestCulture(supportedCultures[0]),
             SupportedCultures = supportedCultures,
             SupportedUICultures = supportedCultures
         });
@@ -160,9 +166,17 @@ public class Startup
 
         app.UseMiddleware<ExceptionMiddleware>();
 
+        // NOVO: Adiciona um endpoint de health check simples
         app.UseEndpoints(endpoints =>
         {
             endpoints.MapControllers();
+            endpoints.MapGet("/health", async context =>
+            {
+                await context.Response.WriteAsync("OK");
+                _logger.LogInformation("Health check endpoint acessado."); // Log
+            });
         });
+
+        _logger.LogInformation("Configure: Configuração da aplicação concluída. Aplicação pronta para receber requisições."); // Log
     }
 }

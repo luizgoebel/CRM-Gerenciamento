@@ -1,69 +1,35 @@
-version: 0.2
+    # ... (código anterior do buildspec.yml) ...
 
-env:
-  variables:
-    AWS_REGION: us-east-2
-    ECR_REPOSITORY_NAME: crm-api-repo
+    post_build:
+      commands:
+        - echo "Pós-build: Gerando pacote de deploy (deploy.zip)..."
+        # Cria o Dockerrun.aws.json com a imagem ECR atualizada
+        - |
+          cat > Dockerrun.aws.json <<EOF
+          {
+            "AWSEBDockerrunVersion": "1",
+            "Image": {
+              "Name": "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:latest",
+              "Update": "true"
+            },
+            "Ports": [
+              {
+                "ContainerPort": 80
+              }
+            ],
+            "Logging": "/var/log/nginx"
+          }
+          EOF
+        - echo "Dockerrun.aws.json criado com sucesso."
+        # Zip o Dockerrun.aws.json e o diretório .ebextensions
+        - zip -r deploy.zip Dockerrun.aws.json .ebextensions/
+        - echo "Pacote de deploy (deploy.zip) criado."
+        - echo "Verificando conteúdo do deploy.zip:" # <-- NOVO
+        - ls -l deploy.zip # <-- NOVO
+        - unzip -l deploy.zip # <-- NOVO
 
-phases:
-  install:
-    runtime-versions:
-      dotnet: 8.0
-
-    commands:
-      - echo "Garantindo que o utilitário zip esteja instalado..."
-      - apt-get update -y
-      - apt-get install -y zip
-
-      - echo "Listando conteúdo da raiz do diretório de trabalho do CodeBuild:"
-      - ls -F .
-      - echo "Listando conteúdo de src/ (se existir):"
-      - ls -F src/ || true
-
-  pre_build:
-    commands:
-      - echo "Recuperando AWS_ACCOUNT_ID..."
-      - export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-
-      - echo "Fazendo login no Amazon ECR..."
-      - bash -c "aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
-
-  build:
-    commands:
-      - echo "Restaurando dependências .NET..."
-      - dotnet restore src/CRM-API.sln
-
-      - echo "Construindo a API .NET..."
-      - dotnet build src/CRM-API.sln --no-restore --configuration Release
-
-      - echo "Executando testes unitários..."
-      - dotnet test src/CRM.Tests/CRM.Tests.csproj --no-build --verbosity normal --configuration Release
-
-      - echo "Construindo e empurrando a imagem Docker para o ECR..."
-      - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
-      - docker build -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$IMAGE_TAG -f Dockerfile .
-      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$IMAGE_TAG
-
-      - docker tag $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:latest
-      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:latest
-
-  post_build:
-    commands:
-      - echo "Criando Dockerrun.aws.json..."
-      - echo '{"AWSEBDockerrunVersion":"1","Image":{"Name":"'$AWS_ACCOUNT_ID'.dkr.ecr.'$AWS_REGION'.amazonaws.com/'$ECR_REPOSITORY_NAME':latest","Update":"true"},"Ports":[{"ContainerPort":80}],"Logging":"/var/log/nginx"}' > Dockerrun.aws.json
-      - echo "Dockerrun.aws.json criado com sucesso."
-
-      - echo "Montando diretório temporário para empacotamento..."
-      - mkdir bundle
-      - cp Dockerrun.aws.json bundle/
-      - cp -r .ebextensions bundle/
-
-      - echo "Gerando pacote de deploy (deploy.zip)..."
-      - cd bundle
-      - zip -r ../deploy.zip .
-      - cd ..
-
-artifacts:
-  files:
-    - deploy.zip
-  discard-paths: yes
+    artifacts:
+      files:
+        - deploy.zip
+      discard-paths: yes
+    

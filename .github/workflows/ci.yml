@@ -1,3 +1,4 @@
+# .github/workflows/ci.yml
 name: Deploy API .NET para AWS Elastic Beanstalk
 
 on:
@@ -10,7 +11,8 @@ env:
   AWS_REGION: us-east-2 # Sua região AWS
   ECR_REPOSITORY_NAME: crm-api-repo # NOME REAL DO SEU REPOSITÓRIO ECR
   EB_APPLICATION_NAME: crm-api-app # Nome da aplicação Elastic Beanstalk que você criou
-  EB_ENVIRONMENT_NAME: crm-api-env-production # Nome do ambiente Elastic Beanstalk que você criou
+  # ATUALIZADO: Usar o nome do seu novo ambiente Elastic Beanstalk
+  EB_ENVIRONMENT_NAME: crm-api-env-production # Nome do ambiente Elastic Beanstalk que você criou (o novo!)
 
 jobs:
   build-test-and-deploy:
@@ -111,10 +113,15 @@ jobs:
         # Este passo só precisa ser executado se houver um deploy potencial (ou seja, na master)
         if: github.ref == 'refs/heads/master'
         run: |
-          zip -r deploy.zip Dockerrun.aws.json
-          echo "deploy.zip criado com sucesso, contendo apenas Dockerrun.aws.json."
-          echo "Verificando conteúdo do deploy.zip:" # <-- NOVA LINHA
-          unzip -l deploy.zip # <-- NOVA LINHA (Isso listará o conteúdo do ZIP)
+          mkdir bundle # Cria um diretório temporário para empacotamento
+          cp Dockerrun.aws.json bundle/ # Copia Dockerrun.aws.json para o diretório
+          # Se você tiver arquivos .ebextensions, inclua-os aqui também:
+          # cp -r .ebextensions bundle/
+          cd bundle # Entra no diretório para que o zip seja criado na raiz do pacote
+          zip -r ../deploy.zip . # Zips o conteúdo de 'bundle' para 'deploy.zip' na pasta pai
+          cd .. # Volta para a raiz do repositório
+          echo "deploy.zip criado com sucesso, contendo:"
+          unzip -l deploy.zip # Isso listará o conteúdo do ZIP
         shell: bash
 
       - name: Deploy para AWS Elastic Beanstalk (via AWS CLI)
@@ -122,9 +129,11 @@ jobs:
         # Este passo só será executado se o push for na branch 'master'
         if: github.ref == 'refs/heads/master'
         run: |
+          # Inicializa o EB CLI para a sua aplicação e ambiente (garante que está configurado)
+          eb init ${{ env.EB_APPLICATION_NAME }} --region ${{ env.AWS_REGION }} --platform docker --no-verify-ssl
+          eb use ${{ env.EB_ENVIRONMENT_NAME }}
           # O eb deploy automaticamente procura por Dockerrun.aws.json na raiz do ZIP
-          # Removendo eb init e eb use, pois o ambiente já existe e o deploy pode ser direto.
-          eb deploy --label ${{ github.sha }} --timeout 10
+          eb deploy --label ${{ github.sha }} --timeout 10 # Adicionado timeout para evitar espera infinita
         shell: bash
 
       - name: Enviar Notificação por E-mail (Sucesso)

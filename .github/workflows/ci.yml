@@ -1,101 +1,82 @@
 # .github/workflows/ci.yml
-name: Deploy API .NET para AWS Elastic Beanstalk
+name: CI/CD da API CRM
 
 on:
   push:
     branches:
-      - development # Para build e testes
-      - master      # Para build, testes e deploy para produção
+      - master
 
 env:
-  AWS_REGION: us-east-2 # Sua região AWS
-  ECR_REPOSITORY_NAME: crm-api-repo # NOME REAL DO SEU REPOSITÓRIO ECR
-  EB_APPLICATION_NAME: crm-api-app # Nome da aplicação Elastic Beanstalk que você criou
-  # ATUALIZADO: Usar o nome do seu novo ambiente Elastic Beanstalk
-  EB_ENVIRONMENT_NAME: crm-api-env-production # Nome do ambiente Elastic Beanstalk que você criou (o novo!)
+  AWS_REGION: us-east-2
+  ECR_REPOSITORY_NAME: crm-api-repo
+  EB_APPLICATION_NAME: crm-api-app
+  EB_ENVIRONMENT_NAME: crm-api-env-production
+
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   build-test-and-deploy:
     runs-on: ubuntu-latest
 
-    permissions:
-      contents: 'read'
-      id-token: 'write' # Necessário para o OIDC
-
     steps:
-      - name: Checkout código
+      - name: Checkout do código
         uses: actions/checkout@v4
 
       - name: Configurar .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: 8.0.x
+          cache: false
 
       - name: Restaurar dependências
         run: dotnet restore src/CRM-API.sln
 
-      - name: Build da API
+      - name: Construir projeto
         run: dotnet build src/CRM-API.sln --no-restore --configuration Release
 
-      - name: Executar Testes Unitários
+      - name: Executar testes
         run: dotnet test src/CRM.Tests/CRM.Tests.csproj --no-build --verbosity normal --configuration Release
-        # IMPORTANTE: Se os testes falharem, o workflow será interrompido aqui.
-        # Não há 'continue-on-error: true' para garantir que o deploy não ocorra em caso de falha.
 
-      - name: Configurar credenciais AWS (via OIDC)
-        # Este passo só precisa ser executado se houver um deploy potencial (ou seja, na master)
-        if: github.ref == 'refs/heads/master'
+      - name: Configurar Credenciais AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }} # Sua role de deploy do GitHub Actions
+          role-to-assume: arn:aws:iam::679625722040:role/GitHubActionsRole
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login no Amazon ECR
-        id: login-ecr
-        # Este passo só precisa ser executado se houver um deploy potencial (ou seja, na master)
-        if: github.ref == 'refs/heads/master'
         uses: aws-actions/amazon-ecr-login@v2
+        id: login-ecr
 
-      - name: Build e Push da imagem Docker para ECR
+      - name: Build e Push da Imagem Docker
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
-        working-directory: .
-        # Este passo só precisa ser executado se houver um deploy potencial (ou seja, na master)
-        if: github.ref == 'refs/heads/master'
         run: |
-          # Build e push com a tag SHA do commit
-          docker build -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_NAME }}:$IMAGE_TAG -f Dockerfile .
-          docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_NAME }}:$IMAGE_TAG
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_NAME:$IMAGE_TAG -f Dockerfile .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY_NAME:$IMAGE_TAG
 
           # Também tag com :latest e push (para que o EB sempre puxe a última)
-          docker tag $ECR_REGISTRY/${{ env.ECR_REPOSITORY_NAME }}:$IMAGE_TAG $ECR_REGISTRY/${{ env.ECR_REPOSITORY_NAME }}:latest
-          docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_NAME }}:latest
-        shell: bash
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY_NAME:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY_NAME:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY_NAME:latest
 
-      - name: Instalar AWS Elastic Beanstalk CLI
-        # Este passo só precisa ser executado se houver um deploy potencial (ou seja, na master)
-        if: github.ref == 'refs/heads/master'
+      - name: Instalar EB CLI
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-pip
           pip3 install awsebcli --upgrade --user
           echo "$HOME/.local/bin" >> $GITHUB_PATH
-        shell: bash
 
       - name: Criar Dockerrun.aws.json
-        id: create-dockerrun
         env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG_FOR_EB: latest
-        # Este passo só precisa ser executado se houver um deploy potencial (ou seja, na master)
-        if: github.ref == 'refs/heads/master'
+          IMAGE_TAG_FOR_EB: latest 
         run: |
           cat > Dockerrun.aws.json <<EOF
           {
             "AWSEBDockerrunVersion": "1",
             "Image": {
-              "Name": "${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY_NAME }}:${{ env.IMAGE_TAG_FOR_EB }}",
+              "Name": "${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_NAME}}:${{ env.IMAGE_TAG_FOR_EB }}",
               "Update": "true"
             },
             "Ports": [
@@ -107,61 +88,54 @@ jobs:
           }
           EOF
           echo "Dockerrun.aws.json criado com sucesso."
-        shell: bash
 
       - name: Gerar pacote de deploy
-        # AGORA SEM .ebextensions: Apenas Dockerrun.aws.json
-        # Este passo só precisa ser executado se houver um deploy potencial (ou seja, na master)
-        if: github.ref == 'refs/heads/master'
         run: |
           zip -r deploy.zip Dockerrun.aws.json
           echo "deploy.zip criado com sucesso, contendo apenas Dockerrun.aws.json."
-        shell: bash
 
-      - name: Deploy para AWS Elastic Beanstalk (via AWS CLI)
-        id: deploy_eb # Adicionado um ID para referenciar este passo
-        # Este passo só será executado se o push for na branch 'master'
-        if: github.ref == 'refs/heads/master'
+      - name: Configurar EB CLI (eb init e eb use)
         run: |
-          # O eb deploy automaticamente procura por Dockerrun.aws.json na raiz do ZIP
+          eb init ${{ env.EB_APPLICATION_NAME }} --region ${{ env.AWS_REGION }} --platform docker
+          eb use ${{ env.EB_ENVIRONMENT_NAME }}
+
+      - name: Deploy para Elastic Beanstalk
+        run: |
           eb deploy --label ${{ github.sha }} --timeout 10 # Adicionado timeout para evitar espera infinita
-        shell: bash
 
-      - name: Enviar Notificação por E-mail (Sucesso)
-        # Este passo só será executado se o deploy for na branch 'master' E o passo de deploy_eb for bem-sucedido.
-        if: github.ref == 'refs/heads/master' && success()
+      - name: Enviar notificação de sucesso
         uses: dawidd6/action-send-mail@v3
+        if: success()
         with:
-          server_address: ${{ secrets.MAIL_SERVER_ADDRESS }} # Endereço do seu servidor SMTP (ex: smtp.gmail.com)
-          server_port: ${{ secrets.MAIL_SERVER_PORT }}       # Porta do servidor SMTP (ex: 587 para TLS/STARTTLS)
-          username: ${{ secrets.MAIL_USERNAME }}             # Seu e-mail de envio
-          password: ${{ secrets.MAIL_PASSWORD }}             # Senha do seu e-mail de envio (ou senha de aplicativo)
-          subject: '[Deploy Sucesso] API CRM - ${{ github.ref_name }}'
-          body: |
-            O deploy da API CRM para o ambiente ${{ env.EB_ENVIRONMENT_NAME }} foi concluído com sucesso!
-            Branch: ${{ github.ref_name }}
-            Commit SHA: ${{ github.sha }}
-            Link do Workflow: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          to: ${{ secrets.MAIL_RECIPIENT_EMAIL }} # E-mail para quem receberá a notificação
-          from: GitHub Actions <${{ secrets.MAIL_USERNAME }}> # Nome e e-mail do remetente
-          enable_starttls: true # Use 'true' para TLS/STARTTLS
-
-      - name: Enviar Notificação por E-mail (Falha)
-        # Este passo só será executado se o deploy for na branch 'master' E o job falhar.
-        if: github.ref == 'refs/heads/master' && failure()
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: ${{ secrets.MAIL_SERVER_ADDRESS }}
-          server_port: ${{ secrets.MAIL_SERVER_PORT }}
+          server_address: smtp.gmail.com
+          server_port: 587
           username: ${{ secrets.MAIL_USERNAME }}
           password: ${{ secrets.MAIL_PASSWORD }}
-          subject: '[Deploy FALHA] API CRM - ${{ github.ref_name }}'
+          subject: '[Deploy SUCESSO] API CRM - master'
+          body: |
+            O deploy da API CRM para o ambiente ${{ env.EB_ENVIRONMENT_NAME }} foi concluído com SUCESSO!
+            Branch: master
+            Commit SHA: ${{ github.sha }}
+            Link do Workflow: https://github.com/luizgoebel/CRM-Gerenciamento/actions/runs/${{ github.run_id }}
+          to: ${{ secrets.MAIL_TO }}
+          from: GitHub Actions <github-actions@github.com>
+          enable_starttls: true
+
+      - name: Enviar notificação de falha
+        uses: dawidd6/action-send-mail@v3
+        if: failure()
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: '[Deploy FALHA] API CRM - master'
           body: |
             O deploy da API CRM para o ambiente ${{ env.EB_ENVIRONMENT_NAME }} FALHOU!
-            Branch: ${{ github.ref_name }}
+            Branch: master
             Commit SHA: ${{ github.sha }}
-            Link do Workflow: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            Link do Workflow: https://github.com/luizgoebel/CRM-Gerenciamento/actions/runs/${{ github.run_id }}
             Verifique os logs para mais detalhes.
-          to: ${{ secrets.MAIL_RECIPIENT_EMAIL }}
-          from: GitHub Actions <${{ secrets.MAIL_USERNAME }}>
+          to: ${{ secrets.MAIL_TO }}
+          from: GitHub Actions <github-actions@github.com>
           enable_starttls: true

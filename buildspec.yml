@@ -47,12 +47,21 @@ phases:
       - docker tag $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:$IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:latest
       - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:latest
 
+  post_build:
+    commands:
       - echo "Criando Dockerrun.aws.json..."
       - echo '{"AWSEBDockerrunVersion":"1","Image":{"Name":"'$AWS_ACCOUNT_ID'.dkr.ecr.'$AWS_REGION'.amazonaws.com/'$ECR_REPOSITORY_NAME':latest","Update":"true"},"Ports":[{"ContainerPort":80}],"Logging":"/var/log/nginx"}' > Dockerrun.aws.json
       - echo "Dockerrun.aws.json criado com sucesso."
 
+      - echo "Montando diretório temporário para empacotamento..."
+      - mkdir bundle
+      - cp Dockerrun.aws.json bundle/
+      - cp -r .ebextensions bundle/
+
       - echo "Gerando pacote de deploy (deploy.zip)..."
-      - zip -r deploy.zip Dockerrun.aws.json .ebextensions/ 
+      - cd bundle
+      - zip -r ../deploy.zip .
+      - cd ..
 
 artifacts:
   files:

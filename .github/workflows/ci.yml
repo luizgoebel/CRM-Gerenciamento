@@ -110,12 +110,12 @@ jobs:
         shell: bash
 
       - name: Gerar pacote de deploy
-        # AGORA SEM .ebextensions: Apenas Dockerrun.aws.json
+        # ATUALIZADO: Usar 'zip ../deploy.zip Dockerrun.aws.json' para garantir que Dockerrun.aws.json esteja na raiz do ZIP
         # Este passo só precisa ser executado se houver um deploy potencial (ou seja, na master)
         if: github.ref == 'refs/heads/master'
         run: |
-          zip -r deploy.zip Dockerrun.aws.json
-          echo "deploy.zip criado com sucesso, contendo apenas Dockerrun.aws.json."
+          zip deploy.zip Dockerrun.aws.json
+          echo "deploy.zip criado com sucesso, contendo apenas Dockerrun.aws.json na raiz."
         shell: bash
 
       - name: Deploy para AWS Elastic Beanstalk (via AWS CLI)

@@ -96,7 +96,8 @@ public class Startup
         _logger.LogInformation("AdicionarSwagger: SwaggerGen adicionado."); // Log
     }
 
-    public async void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+    // O método Configure agora é 'async Task' para permitir 'await Task.Delay' e 'await MigrateAsync'
+    public async Task Configure(IApplicationBuilder app, IWebHostEnvironment env)
     {
         _logger.LogInformation("Configure: Iniciando configuração da aplicação."); // Log
 
@@ -113,7 +114,7 @@ public class Startup
                 {
                     _logger.LogInformation($"Tentativa {i + 1}/{maxRetries}: Tentando aplicar migrações do banco de dados."); // Log
                     var dbContext = services.GetRequiredService<CrmDbContext>();
-                    await dbContext.Database.MigrateAsync();
+                    await dbContext.Database.MigrateAsync(); // 'await' é crucial aqui
                     _logger.LogInformation("Migrações do banco de dados aplicadas com sucesso."); // Log
                     break;
                 }
@@ -123,7 +124,7 @@ public class Startup
                     if (i < maxRetries - 1)
                     {
                         _logger.LogInformation($"Aguardando {delayMilliseconds / 1000} segundos antes de tentar novamente..."); // Log
-                        Thread.Sleep(delayMilliseconds);
+                        await Task.Delay(delayMilliseconds); // CORRIGIDO: Usar Task.Delay para não bloquear a thread
                     }
                     else
                     {

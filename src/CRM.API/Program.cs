@@ -13,6 +13,6 @@ Startup startup = new(builder.Configuration, builder.Services.BuildServiceProvid
 startup.ConfigureServices(builder.Services, builder.Environment);
 
 var app = builder.Build();
-startup.Configure(app, builder.Environment);
+await startup.Configure(app, builder.Environment);
 
 app.Run();

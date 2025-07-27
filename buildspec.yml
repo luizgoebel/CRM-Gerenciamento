@@ -7,17 +7,14 @@ env:
 
 phases:
   install:
-    # NOVO: Especifica a versão do .NET SDK a ser usada pelo CodeBuild
     runtime-versions:
       dotnet: 8.0
 
     commands:
-      # REMOVIDO: Comandos de instalação manual do .NET SDK, pois runtime-versions cuidará disso.
       - echo "Garantindo que o utilitário zip esteja instalado..."
       - apt-get update -y
       - apt-get install -y zip
 
-      # Comandos de depuração (opcional, pode remover na versão final)
       - echo "Listando conteúdo da raiz do diretório de trabalho do CodeBuild:"
       - ls -F .
       - echo "Listando conteúdo de src/ (se existir):"
@@ -55,7 +52,7 @@ phases:
       - echo "Dockerrun.aws.json criado com sucesso."
 
       - echo "Gerando pacote de deploy (deploy.zip)..."
-      - zip -r deploy.zip Dockerrun.aws.json
+      - zip -r deploy.zip Dockerrun.aws.json .ebextensions/ 
 
 artifacts:
   files:

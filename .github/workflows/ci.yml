@@ -1,3 +1,4 @@
+# .github/workflows/ci.yml
 name: Deploy API .NET para AWS Elastic Beanstalk
 
 on:
@@ -10,7 +11,8 @@ env:
   AWS_REGION: us-east-2 # Sua região AWS
   ECR_REPOSITORY_NAME: crm-api-repo # NOME REAL DO SEU REPOSITÓRIO ECR
   EB_APPLICATION_NAME: crm-api-app # Nome da aplicação Elastic Beanstalk que você criou
-  EB_ENVIRONMENT_NAME: crm-api-env-production # Nome do ambiente Elastic Beanstalk que você criou
+  # ATUALIZADO: Usar o nome do seu novo ambiente Elastic Beanstalk
+  EB_ENVIRONMENT_NAME: crm-api-env-production # Nome do ambiente Elastic Beanstalk que você criou (o novo!)
 
 jobs:
   build-test-and-deploy:
@@ -108,10 +110,12 @@ jobs:
         shell: bash
 
       - name: Gerar pacote de deploy
+        # AGORA SEM .ebextensions: Apenas Dockerrun.aws.json
         # Este passo só precisa ser executado se houver um deploy potencial (ou seja, na master)
         if: github.ref == 'refs/heads/master'
         run: |
           zip -r deploy.zip Dockerrun.aws.json
+          echo "deploy.zip criado com sucesso, contendo apenas Dockerrun.aws.json."
         shell: bash
 
       - name: Deploy para AWS Elastic Beanstalk (via AWS CLI)
@@ -119,9 +123,8 @@ jobs:
         # Este passo só será executado se o push for na branch 'master'
         if: github.ref == 'refs/heads/master'
         run: |
-          eb init ${{ env.EB_APPLICATION_NAME }} --region ${{ env.AWS_REGION }} --platform docker --no-verify-ssl
-          eb use ${{ env.EB_ENVIRONMENT_NAME }}
-          eb deploy --label ${{ github.sha }}
+          # O eb deploy automaticamente procura por Dockerrun.aws.json na raiz do ZIP
+          eb deploy --label ${{ github.sha }} --timeout 10 # Adicionado timeout para evitar espera infinita
         shell: bash
 
       - name: Enviar Notificação por E-mail (Sucesso)
@@ -141,7 +144,7 @@ jobs:
             Link do Workflow: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
           to: ${{ secrets.MAIL_RECIPIENT_EMAIL }} # E-mail para quem receberá a notificação
           from: GitHub Actions <${{ secrets.MAIL_USERNAME }}> # Nome e e-mail do remetente
-          secure: true # Use 'true' para TLS/STARTTLS
+          enable_starttls: true # Use 'true' para TLS/STARTTLS
 
       - name: Enviar Notificação por E-mail (Falha)
         # Este passo só será executado se o deploy for na branch 'master' E o job falhar.
@@ -161,4 +164,4 @@ jobs:
             Verifique os logs para mais detalhes.
           to: ${{ secrets.MAIL_RECIPIENT_EMAIL }}
           from: GitHub Actions <${{ secrets.MAIL_USERNAME }}>
-          secure: true
+          enable_starttls: true

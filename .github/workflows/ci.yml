@@ -123,6 +123,10 @@ jobs:
         # Este passo só será executado se o push for na branch 'master'
         if: github.ref == 'refs/heads/master'
         run: |
+          # Inicializa o ambiente EB CLI no diretório do runner
+          eb init ${{ env.EB_APPLICATION_NAME }} --region ${{ env.AWS_REGION }} --platform docker --no-verify-ssl
+          # Define o ambiente EB a ser usado
+          eb use ${{ env.EB_ENVIRONMENT_NAME }}
           # O eb deploy automaticamente procura por Dockerrun.aws.json na raiz do ZIP
           eb deploy --label ${{ github.sha }} --timeout 10 # Adicionado timeout para evitar espera infinita
         shell: bash

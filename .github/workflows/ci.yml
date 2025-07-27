@@ -112,6 +112,9 @@ jobs:
         if: github.ref == 'refs/heads/master'
         run: |
           zip -r deploy.zip Dockerrun.aws.json
+          echo "deploy.zip criado com sucesso, contendo apenas Dockerrun.aws.json."
+          echo "Verificando conteúdo do deploy.zip:" # <-- NOVA LINHA
+          unzip -l deploy.zip # <-- NOVA LINHA (Isso listará o conteúdo do ZIP)
         shell: bash
 
       - name: Deploy para AWS Elastic Beanstalk (via AWS CLI)
@@ -119,9 +122,9 @@ jobs:
         # Este passo só será executado se o push for na branch 'master'
         if: github.ref == 'refs/heads/master'
         run: |
-          eb init ${{ env.EB_APPLICATION_NAME }} --region ${{ env.AWS_REGION }} --platform docker --no-verify-ssl
-          eb use ${{ env.EB_ENVIRONMENT_NAME }}
-          eb deploy --label ${{ github.sha }}
+          # O eb deploy automaticamente procura por Dockerrun.aws.json na raiz do ZIP
+          # Removendo eb init e eb use, pois o ambiente já existe e o deploy pode ser direto.
+          eb deploy --label ${{ github.sha }} --timeout 10
         shell: bash
 
       - name: Enviar Notificação por E-mail (Sucesso)

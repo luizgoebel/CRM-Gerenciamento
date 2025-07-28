@@ -10,7 +10,7 @@ env:
   AWS_REGION: us-east-2 # Sua região AWS
   ECR_REPOSITORY_NAME: crm-api-repo # NOME REAL DO SEU REPOSITÓRIO ECR
   EB_APPLICATION_NAME: crm-api-app # Nome da aplicação Elastic Beanstalk que você criou
-  EB_ENVIRONMENT_NAME: crm-api-env-production # Nome do ambiente Elastic Beanstalk que você criou
+  EB_ENVIRONMENT_NAME: crm-api-env # Nome do ambiente Elastic Beanstalk que você criou
 
 jobs:
   build-test-and-deploy:

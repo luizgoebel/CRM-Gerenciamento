@@ -55,7 +55,7 @@ public class ProdutoService(IProdutoRepository produtoRepository) : IProdutoServ
     public ProdutoDto ObterPorId(int id)
     {
         var produto = _produtoRepository.ObterPorId(id).GetAwaiter().GetResult()
-            ?? throw new ServiceException("Produto não encontrado.");
+            ?? throw new ServiceException("Não conseguimos encontrar o produto informado. Por favor, verifique os dados e tente novamente.");
 
         return produto.ToDto();
     }
@@ -63,7 +63,7 @@ public class ProdutoService(IProdutoRepository produtoRepository) : IProdutoServ
     public void Salvar(ProdutoDto dto)
     {
         if (dto == null)
-            throw new ServiceException("Dados do produto inválidos.");
+            throw new ServiceException("Dados incompletos. Por favor, preencha todos os campos obrigatórios para finalizar.");
 
         var produto = dto.ToModel();
         Validar(produto);
@@ -71,7 +71,7 @@ public class ProdutoService(IProdutoRepository produtoRepository) : IProdutoServ
         if (dto.Id > 0)
         {
             var existente = _produtoRepository.ObterPorId(dto.Id.Value).GetAwaiter().GetResult()
-                ?? throw new ServiceException("Produto não encontrado para atualização.");
+                ?? throw new ServiceException("Não conseguimos encontrar o produto informado. Por favor, verifique os dados e tente novamente.");
 
             existente.Alterar(dto.Nome, dto.Preco);
             _produtoRepository.Atualizar(existente);
@@ -84,7 +84,7 @@ public class ProdutoService(IProdutoRepository produtoRepository) : IProdutoServ
     public void Remover(int id)
     {
         var produto = _produtoRepository.ObterPorId(id).GetAwaiter().GetResult()
-            ?? throw new ServiceException("Produto não encontrado.");
+            ?? throw new ServiceException("Não conseguimos encontrar o produto. Por favor, verifique os dados e tente novamente.");
 
         _produtoRepository.Remover(produto);
     }

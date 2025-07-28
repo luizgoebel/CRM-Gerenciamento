@@ -14,7 +14,7 @@ public class ClienteService(IClienteRepository clienteRepository) : IClienteServ
     public async Task<ClienteDto> ObterPorId(int id)
     {
         var cliente = await _clienteRepository.ObterPorId(id)
-            ?? throw new ServiceException("Cliente não encontrado.");
+            ?? throw new ServiceException("Não encontramos seu cadastro. Por favor, verifique os dados de acesso ou crie uma nova conta.");
 
         return cliente.ToDto();
     }
@@ -22,7 +22,7 @@ public class ClienteService(IClienteRepository clienteRepository) : IClienteServ
     public void Salvar(ClienteDto dto)
     {
         if (dto == null)
-            throw new ServiceException("Dados do cliente inválidos.");
+            throw new ServiceException("Seu cadastro está incompleto. Por favor, preencha todos os campos obrigatórios para finalizar o processo.");
 
         var cliente = dto.ToModel();
         ValidarCadastroParcial(cliente);
@@ -30,7 +30,7 @@ public class ClienteService(IClienteRepository clienteRepository) : IClienteServ
         if (dto.Id > 0)
         {
             var existente = _clienteRepository.ObterPorId(dto.Id!.Value).GetAwaiter().GetResult()
-                ?? throw new ServiceException("Cliente não encontrado para atualização.");
+                ?? throw new ServiceException("Não encontramos seu cadastro. Por favor, verifique os dados de acesso ou crie uma nova conta.");
 
             existente.Alterar(dto.Nome, dto.Telefone, dto.Email, dto.Endereco);
             _clienteRepository.Atualizar(existente);

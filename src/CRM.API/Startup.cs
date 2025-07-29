@@ -123,7 +123,7 @@ public class Startup
                     _logger.LogError(ex, $"Tentativa {i + 1}/{maxRetries}: Ocorreu um erro ao aplicar as migrações do banco de dados."); // Log de erro
                     if (i < maxRetries - 1)
                     {
-                        _logger.LogInformation($"Aguardando {delayMilliseconds / 1000} segundos antes de tentar novamente..."); // Log
+                        _logger.LogInformation($"Aguardando {delayMilliseconds / 1000} segundos antes de tentar novamente..."); 
                         await Task.Delay(delayMilliseconds); // CORRIGIDO: Usar Task.Delay para não bloquear a thread
                     }
                     else

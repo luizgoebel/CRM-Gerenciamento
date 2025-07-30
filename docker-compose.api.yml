@@ -1,0 +1,54 @@
+# docker-compose.api.yml
+# Este arquivo gerencia o serviço da sua API e o banco de dados MySQL para desenvolvimento local.
+
+services:
+  crm.api: # Seu serviço de API (Back-end)
+    build:
+      context: . # Onde o Dockerfile da API está (raiz do repositório, ex: C:\Users\source\repos\CRM-API)
+      dockerfile: Dockerfile # Nome do Dockerfile da API na raiz
+    ports:
+      - "8080:80" # CORRIGIDO: Mapeia a porta 8080 do host para a porta 80 do contêiner da API
+    environment:
+      # Variáveis de ambiente para a conexão com o banco de dados MySQL
+      # O DB_HOST 'mysql.data' refere-se ao nome do serviço MySQL dentro desta rede Docker Compose
+      - DB_HOST=mysql.data
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_NAME=crmapi
+      - ASPNETCORE_ENVIRONMENT=Development # Define o ambiente para Desenvolvimento
+    depends_on:
+      mysql.data: # Garante que o MySQL esteja saudável antes de iniciar a API
+        condition: service_healthy
+    restart: always # Reinicia o contêiner automaticamente
+    container_name: crm-api-app # Nome personalizado para o contêiner da API
+    networks: # Define a rede à qual este serviço pertence
+      - crm_network # Usaremos esta rede para comunicação externa (com o projeto web, por exemplo)
+
+  mysql.data: # Seu serviço de Banco de Dados MySQL
+    image: mysql:8.0 # Usa a imagem oficial do MySQL versão 8
+    environment:
+      - MYSQL_ROOT_PASSWORD=root # Senha do usuário root do MySQL
+      - MYSQL_DATABASE=crmapi # Nome do banco de dados a ser criado
+      # REMOVIDO: - MYSQL_USER=root (esta linha causa erro de inicialização do MySQL)
+    ports:
+      - "3306:3306" # Mapeia a porta 3306 do host para a porta 3306 do contêiner MySQL
+    volumes:
+      - mysql_data:/var/lib/mysql # Persiste os dados do MySQL em um volume nomeado
+    healthcheck: # Verifica se o serviço MySQL está pronto para aceitar conexões
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      timeout: 20s
+      retries: 10
+      interval: 5s
+    restart: always # Reinicia o contêiner automaticamente
+    container_name: crm-mysql-db # Nome personalizado para o contêiner MySQL
+    networks: # Define a rede à qual este serviço pertence
+      - crm_network # Usaremos esta rede para comunicação externa
+
+volumes:
+  mysql_data: # Define o volume nomeado para persistência dos dados do MySQL
+
+networks:
+  crm_network: # Define uma rede personalizada para este projeto Compose
+    name: crm_shared_network # Nome da rede que será criada no Docker (para ser usada por outros projetos Compose)
+    driver: bridge # Tipo de rede (padrão para comunicação entre contêineres na mesma máquina)

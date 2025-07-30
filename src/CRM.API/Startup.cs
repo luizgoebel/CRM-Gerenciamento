@@ -1,5 +1,6 @@
 ﻿using CRM.API.Middlewares;
 using CRM.Infrastructure.DbContext;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using System.Globalization;
@@ -82,6 +83,13 @@ public class Startup
     public async Task Configure(IApplicationBuilder app, IWebHostEnvironment env)
     {
         var supportedCultures = new[] { new CultureInfo("pt-BR") };
+        app.UseRequestLocalization(new RequestLocalizationOptions
+        {
+            DefaultRequestCulture = new RequestCulture(culture: "pt-BR", uiCulture: "pt-BR"),
+            SupportedCultures = supportedCultures,
+            SupportedUICultures = supportedCultures
+        });
+
         using var scope = app.ApplicationServices.CreateScope();
         var services = scope.ServiceProvider;
         var dbContext = services.GetRequiredService<CrmDbContext>();

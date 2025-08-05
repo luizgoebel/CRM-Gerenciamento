@@ -6,6 +6,7 @@ using CRM.Core.Interfaces;
 using CRM.Domain.Entidades;
 using Moq;
 using NUnit.Framework;
+using NUnit.Framework.Interfaces;
 
 namespace CRM.Tests.Servicos;
 
@@ -88,6 +89,69 @@ public class PedidoServiceTests
     }
 
     [Test]
+    public async Task CriarPedido_QuandoOpedidoExiste_DeveAtualizarPedido()
+    {
+        // Arrange  
+        var produto = new Produto
+        {
+            Id = 1,
+            Nome = "Produto Teste",
+            Preco = 10m
+        };
+
+        var pedidoDto = new PedidoDto
+        {
+            Id = 2,
+            ClienteId = 1,
+            Itens = new List<PedidoItemDto>
+            {
+                new PedidoItemDto { ProdutoId = 1, Quantidade = 5 }
+            }
+        };
+
+        var pedidoExistente = new Pedido
+        {
+            Id = 2,
+            ClienteId = 1,
+            Itens = new List<PedidoItem>
+            {
+                new PedidoItem { ProdutoId = 1, Quantidade = 2, Produto = produto }
+            }
+        };
+
+        _produtoRepositoryMock.Setup(r => r.ListarTodos())
+            .Returns(new List<Produto>
+            {
+                new Produto
+                {
+                    Id = 1,
+                    Nome = "Produto Teste",
+                    Preco = 10m
+                }
+            });
+
+        _clienteRepositoryMock.Setup(r => r.ObterPorId((int)pedidoDto.ClienteId))
+            .ReturnsAsync(new Cliente
+            {
+                Id = (int)pedidoDto.ClienteId,
+                Nome = "João",
+                Email = "joao@email.com",
+                Endereco = "endereço",
+                Telefone = "00000",
+                DataCriacao = DateTime.Now,
+                DataModificacao = DateTime.Now
+            });
+
+        _pedidoRepositoryMock.Setup(r => r.ObterPorId(2)).ReturnsAsync(pedidoExistente);
+
+        // Act  
+        _pedidoService.CriarPedido(pedidoDto);           
+
+        // Assert  
+        _pedidoRepositoryMock.Verify(r => r.Atualizar(It.Is<Pedido>(p => p.Id == 2 && p.Itens.Any(i => i.Quantidade == 5))), Times.Once);
+    }
+
+    [Test]
     public async Task ObterPedidosPaginados_ComFiltro_DeveRetornarSomentePedidosFiltrados()
     {
         // Arrange
@@ -109,26 +173,48 @@ public class PedidoServiceTests
     }
 
     [Test]
-    public async Task ObterPorId_ClienteRegistrado_DeveRetornarPedido()
+    public async Task ObterPedidosPaginados_SemFiltro_DeveRetornarTodosOsPedidos()
+    {
+        // Arrange
+        var pedidos = new List<Pedido>
+        {
+            new Pedido { Id = 1, ClienteId = 1, Cliente = new Cliente { Id = 1, Nome = "João" }, DataCriacao = DateTime.Now },
+            new Pedido { Id = 2, ClienteId = 2, Cliente = new Cliente { Id = 2, Nome = "Maria" }, DataCriacao = DateTime.Now }
+        };
+
+        _pedidoRepositoryMock.Setup(r => r.ObterQueryPedidos()).ReturnsAsync(pedidos.AsQueryable());
+
+        // Act
+        var resultado = await _pedidoService.ObterPedidosPaginados("", 1, 10);
+
+        // Assert
+        Assert.IsNotNull(resultado);
+        Assert.AreEqual(2, resultado.Total);
+        Assert.AreEqual("Maria", resultado.Itens[0].Cliente);
+        Assert.AreEqual("João", resultado.Itens[1].Cliente);
+    }
+
+    [Test]
+    public async Task ObterPorId_QuandoPedidoExiste_DeveRetornarPedido()
     {
         // Arrange  
         var pedido = new Pedido
         {
-            Id = 1,
+            Id = 2,
             ClienteId = 1,
             Itens = new List<PedidoItem>
             {
                 new PedidoItem { ProdutoId = 1, Quantidade = 2 }
             }
         };
-        _pedidoRepositoryMock.Setup(r => r.ObterPorId(1)).ReturnsAsync(pedido);
+        _pedidoRepositoryMock.Setup(r => r.ObterPorId(2)).ReturnsAsync(pedido);
 
         // Act  
-        var resultado = _pedidoService.ObterPorId(1).Result;
+        var resultado = _pedidoService.ObterPorId(2).Result;
 
         // Assert  
         Assert.IsNotNull(resultado);
-        Assert.AreEqual(1, resultado.Id);
+        Assert.AreEqual(2, resultado.Id);
     }
 
     [Test]

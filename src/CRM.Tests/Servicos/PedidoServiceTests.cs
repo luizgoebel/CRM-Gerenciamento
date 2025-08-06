@@ -89,7 +89,7 @@ public class PedidoServiceTests
     }
 
     [Test]
-    public async Task CriarPedido_QuandoOpedidoExiste_DeveAtualizarPedido()
+    public async Task CriarPedido_QuandoOPedidoExiste_DeveAtualizarValoresDoPedido()
     {
         // Arrange  
         var produto = new Produto
@@ -146,6 +146,62 @@ public class PedidoServiceTests
 
         // Act  
         _pedidoService.CriarPedido(pedidoDto);           
+
+        // Assert  
+        _pedidoRepositoryMock.Verify(r => r.Atualizar(It.Is<Pedido>(p => p.Id == 2 && p.Itens.Any(i => i.Quantidade == 5))), Times.Once);
+    }
+
+    [Test]
+    public async Task CriarPedido_ChamaOMetodoAualizarPedido_QuandoOPedidoEstaVazio_DeveAdicionarItem()
+    {
+        // Arrange  
+        var pedidoDto = new PedidoDto
+        {
+            Id = 2,
+            ClienteId = 1,
+            Itens = new List<PedidoItemDto>
+            {
+                new PedidoItemDto { ProdutoId = 1, Quantidade = 5 }
+            }
+        };
+
+        var pedidoExistente = new Pedido
+        {
+            Id = 2,
+            ClienteId = 1,
+            Itens = new List<PedidoItem>
+            {
+               new PedidoItem { }
+            }
+        };
+
+        _produtoRepositoryMock.Setup(r => r.ListarTodos())
+            .Returns(new List<Produto>
+            {
+                new Produto
+                {
+                    Id = 1,
+                    Nome = "Produto Teste",
+                    Preco = 10m
+                }
+            });
+
+        _clienteRepositoryMock.Setup(r => r.ObterPorId((int)pedidoDto.ClienteId))
+            .ReturnsAsync(new Cliente
+            {
+                Id = (int)pedidoDto.ClienteId,
+                Nome = "João",
+                Email = "joao@email.com",
+                Endereco = "endereço",
+                Telefone = "00000",
+                DataCriacao = DateTime.Now,
+                DataModificacao = DateTime.Now
+            });
+
+        _pedidoRepositoryMock.Setup(r => r.ObterPorId(2)).ReturnsAsync(pedidoExistente);
+
+        // Act  
+        _pedidoService.CriarPedido(pedidoDto);
 
         // Assert  
         _pedidoRepositoryMock.Verify(r => r.Atualizar(It.Is<Pedido>(p => p.Id == 2 && p.Itens.Any(i => i.Quantidade == 5))), Times.Once);
@@ -244,6 +300,214 @@ public class PedidoServiceTests
 
         // Assert  
         _pedidoRepositoryMock.Verify(r => r.Remover(It.Is<Pedido>(p => p.Id == 1)), Times.Once);
+    }
+
+    [Test]
+    public async Task CriarPedido_ChamaOMetodoAtualizar_QuandoProdutoForNulo_DeveLancarExcessao()
+    {
+        // Arrange  
+        var pedidoDto = new PedidoDto
+        {
+            Id = 2,
+            ClienteId = 1,
+            Itens = new List<PedidoItemDto>
+            {
+                new PedidoItemDto { ProdutoId = 1, Quantidade = 5 }
+            }
+        };
+
+        var pedidoExistente = new Pedido
+        {
+            Id = 2,
+            ClienteId = 1,
+            Itens = new List<PedidoItem>
+            {
+                new PedidoItem { ProdutoId = 1, Quantidade = 2, Produto = null }
+            }
+        };
+
+        _produtoRepositoryMock.Setup(r => r.ListarTodos())
+            .Returns(new List<Produto>
+            {
+                new Produto
+                {
+                    Id = 1,
+                    Nome = "Produto Teste",
+                    Preco = 10m
+                }
+            });
+
+        _clienteRepositoryMock.Setup(r => r.ObterPorId((int)pedidoDto.ClienteId))
+            .ReturnsAsync(new Cliente
+            {
+                Id = (int)pedidoDto.ClienteId,
+                Nome = "João",
+                Email = "joao@email.com",
+                Endereco = "endereço",
+                Telefone = "00000",
+                DataCriacao = DateTime.Now,
+                DataModificacao = DateTime.Now
+            });
+
+        _pedidoRepositoryMock.Setup(r => r.ObterPorId(2)).ReturnsAsync(pedidoExistente);
+
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => _pedidoService.CriarPedido(pedidoDto));        
+    }
+
+    [Test]
+    public void CriarPedido_QuandoOsItensDoPedidoForNulo_DeveLancarExcecao()
+    {
+        // Arrange
+        var pedidoDto = new PedidoDto
+        {
+            Id = 0,
+            ClienteId = 2,
+            Itens = null
+        };
+
+        _produtoRepositoryMock.Setup(r => r.ListarTodos())
+            .Returns(new List<Produto>
+            {
+                new Produto
+                {
+                    Id = 1,
+                    Nome = "Produto Teste",
+                    Preco = 10m
+                }
+            });
+
+        _clienteRepositoryMock.Setup(r => r.ObterPorId((int)pedidoDto.ClienteId))
+            .ReturnsAsync(new Cliente
+            {
+                Id = (int)pedidoDto.ClienteId,
+                Nome = "João",
+                Email = "joao@email.com",
+                Endereco = "endereço",
+                Telefone = "00000",
+                DataCriacao = DateTime.Now,
+                DataModificacao = DateTime.Now
+            });
+
+        // Act & Assert  
+        Assert.Throws<ServiceException>(() => _pedidoService.CriarPedido(pedidoDto));
+    }
+
+    [Test]
+    public void CriarPedido_QuandoOsItensDoPedidoForVazio_DeveLancarExcecao()
+    {
+        // Arrange
+        var pedidoDto = new PedidoDto
+        {
+            Id = 0,
+            ClienteId = 2,
+            Itens = new List<PedidoItemDto>()
+        };
+
+        _produtoRepositoryMock.Setup(r => r.ListarTodos())
+            .Returns(new List<Produto>
+            {
+                new Produto
+                {
+                    Id = 1,
+                    Nome = "Produto Teste",
+                    Preco = 10m
+                }
+            });
+
+        _clienteRepositoryMock.Setup(r => r.ObterPorId((int)pedidoDto.ClienteId))
+            .ReturnsAsync(new Cliente
+            {
+                Id = (int)pedidoDto.ClienteId,
+                Nome = "João",
+                Email = "joao@email.com",
+                Endereco = "endereço",
+                Telefone = "00000",
+                DataCriacao = DateTime.Now,
+                DataModificacao = DateTime.Now
+            });
+
+        // Act & Assert  
+        Assert.Throws<ServiceException>(() => _pedidoService.CriarPedido(pedidoDto));
+    }
+
+    [Test]
+    public void CriarPedido_QuandoTiverItensDuplicados_DeveLancarExcecao()
+    {
+        // Arrange
+        var pedidoDto = new PedidoDto
+        {
+            Id = 0,
+            ClienteId = 2,
+            Itens = new List<PedidoItemDto>
+            {
+                new PedidoItemDto { ProdutoId = 1, Quantidade = 2 },
+                new PedidoItemDto { ProdutoId = 1, Quantidade = 3 } 
+            }
+        };
+
+        _produtoRepositoryMock.Setup(r => r.ListarTodos())
+            .Returns(new List<Produto>
+            {
+                new Produto
+                {
+                    Id = 0,
+                    Nome = "Produto Teste",
+                    Preco = 10m
+                }
+            });
+
+        _clienteRepositoryMock.Setup(r => r.ObterPorId((int)pedidoDto.ClienteId))
+            .ReturnsAsync(new Cliente
+            {
+                Id = (int)pedidoDto.ClienteId,
+                Nome = "João",
+                Email = "joao@email.com",
+                Endereco = "endereço",
+                Telefone = "00000",
+                DataCriacao = DateTime.Now,
+                DataModificacao = DateTime.Now
+            });
+
+        // Act & Assert  
+        Assert.Throws<ServiceException>(() => _pedidoService.CriarPedido(pedidoDto));
+    }
+
+    [Test]
+    public void CriarPedido_QuandoCadastroForIncompleto_DeveLancarExcecao()
+    {
+        // Arrange
+        var pedidoDto = new PedidoDto
+        {
+            Id = 0,
+            ClienteId = 2,
+            Itens = new List<PedidoItemDto>
+            {
+                new PedidoItemDto { ProdutoId = 1, Quantidade = 2 }
+            }
+        };
+
+        _produtoRepositoryMock.Setup(r => r.ListarTodos())
+            .Returns(new List<Produto>
+            {
+                new Produto
+                {
+                    Id = 1,
+                    Nome = "Produto Teste",
+                    Preco = 10m
+                }
+            });
+
+        _clienteRepositoryMock.Setup(r => r.ObterPorId((int)pedidoDto.ClienteId))
+            .ReturnsAsync(new Cliente
+            {
+                Id = (int)pedidoDto.ClienteId,
+                Nome = "João",
+                Telefone = "00000"
+            });
+
+        // Act & Assert  
+        Assert.Throws<ServiceException>(() => _pedidoService.CriarPedido(pedidoDto));
     }
 
     [Test]

@@ -92,13 +92,6 @@ public class PedidoServiceTests
     public async Task CriarPedido_QuandoOPedidoExiste_DeveAtualizarValoresDoPedido()
     {
         // Arrange  
-        var produto = new Produto
-        {
-            Id = 1,
-            Nome = "Produto Teste",
-            Preco = 10m
-        };
-
         var pedidoDto = new PedidoDto
         {
             Id = 2,
@@ -106,16 +99,6 @@ public class PedidoServiceTests
             Itens = new List<PedidoItemDto>
             {
                 new PedidoItemDto { ProdutoId = 1, Quantidade = 5 }
-            }
-        };
-
-        var pedidoExistente = new Pedido
-        {
-            Id = 2,
-            ClienteId = 1,
-            Itens = new List<PedidoItem>
-            {
-                new PedidoItem { ProdutoId = 1, Quantidade = 2, Produto = produto }
             }
         };
 
@@ -142,7 +125,15 @@ public class PedidoServiceTests
                 DataModificacao = DateTime.Now
             });
 
-        _pedidoRepositoryMock.Setup(r => r.ObterPorId(2)).ReturnsAsync(pedidoExistente);
+        _pedidoRepositoryMock.Setup(r => r.ObterPorId(2)).ReturnsAsync(new Pedido
+        {
+            Id = 2,
+            ClienteId = 1,
+            Itens = new List<PedidoItem>
+            {
+                new PedidoItem { ProdutoId = 1, Quantidade = 2, Produto = new Produto { Id = 1, Nome = "Produto Teste", Preco = 10m } }
+            }
+        });
 
         // Act  
         _pedidoService.CriarPedido(pedidoDto);           
@@ -509,7 +500,7 @@ public class PedidoServiceTests
         // Act & Assert  
         Assert.Throws<ServiceException>(() => _pedidoService.CriarPedido(pedidoDto));
     }
-
+   
     [Test]
     public void CriarPedido_QuandoClienteIdForNegativo_DeveLancarExcecao()
     {
